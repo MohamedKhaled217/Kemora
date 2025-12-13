@@ -1,0 +1,20 @@
+﻿using Microsoft.AspNetCore.Identity;
+using System.Collections.Generic;
+using System.Xml.Linq;
+
+namespace Kemora.Domain.Entities
+{
+    public class ApplicationUser : IdentityUser
+    {
+        public string FullName { get; set; }
+        public int TotalPoints { get; set; } = 0;
+
+        // Navigation Properties
+        public ICollection<UserBadge> UserBadges { get; set; }
+        public ICollection<UserPoint> PointHistory { get; set; }
+        public ICollection<Trip> Trips { get; set; }
+        public ICollection<UserFavorite> Favorites { get; set; }
+        public ICollection<Post> Posts { get; set; }
+        public ICollection<Comment> Comments { get; set; }
+    }
+}

@@ -1,0 +1,71 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace Kemora.Domain.Entities
+{
+    public class Post
+    {
+        [Key] public int PostID { get; set; }
+        public string Content { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string UserID { get; set; }
+        public ApplicationUser User { get; set; }
+        public ICollection<PostMedia> Media { get; set; }
+        public ICollection<PostReaction> Reactions { get; set; }
+        public ICollection<Comment> Comments { get; set; }
+    }
+
+    public class PostMedia
+    {
+        [Key] public int MediaID { get; set; }
+        public string MediaURL { get; set; }
+        public string MediaType { get; set; } // "Image", "Video"
+        public int PostID { get; set; }
+        public Post Post { get; set; }
+    }
+
+    public class PostReaction
+    {
+        [Key] public int ReactionID { get; set; }
+        public string ReactionType { get; set; } // "Like", "Love"
+        public DateTime ReactedAt { get; set; } = DateTime.UtcNow;
+        public int PostID { get; set; }
+        public Post Post { get; set; }
+        public string UserID { get; set; }
+        public ApplicationUser User { get; set; }
+    }
+
+    public class Comment
+    {
+        [Key] public int CommentID { get; set; }
+        public string Content { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int PostID { get; set; }
+        public Post Post { get; set; }
+        public string UserID { get; set; }
+        public ApplicationUser User { get; set; }
+        public ICollection<CommentMedia> Media { get; set; }
+        public ICollection<CommentReaction> Reactions { get; set; }
+    }
+
+    public class CommentMedia
+    {
+        [Key] public int MediaID { get; set; }
+        public string MediaURL { get; set; }
+        public string MediaType { get; set; }
+        public int CommentID { get; set; }
+        public Comment Comment { get; set; }
+    }
+
+    public class CommentReaction
+    {
+        [Key] public int ReactionID { get; set; }
+        public string ReactionType { get; set; }
+        public DateTime ReactedAt { get; set; }
+        public int CommentID { get; set; }
+        public Comment Comment { get; set; }
+        public string UserID { get; set; }
+        public ApplicationUser User { get; set; }
+    }
+}
