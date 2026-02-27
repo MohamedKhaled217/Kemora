@@ -4,12 +4,18 @@ namespace Kemora.Application.DTOs
 {
     public class CreateEventDto
     {
-        [Required, StringLength(200)]
+        [Required(ErrorMessage = "Event name is required.")]
+        [StringLength(200, ErrorMessage = "Event name cannot exceed 200 characters.")]
         public string Name { get; set; } = string.Empty;
 
-        [Required] public DateTime StartDate { get; set; }
-        [Required] public DateTime EndDate { get; set; }
-        [Required] public int PlaceID { get; set; }
+        [Required(ErrorMessage = "Start date is required.")]
+        public DateTime StartDate { get; set; }
+
+        [Required(ErrorMessage = "End date is required.")]
+        public DateTime EndDate { get; set; }
+
+        [Required(ErrorMessage = "Place ID is required.")]
+        public int PlaceID { get; set; }
     }
 
     public class UpdateEventDto

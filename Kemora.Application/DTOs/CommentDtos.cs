@@ -4,7 +4,8 @@ namespace Kemora.Application.DTOs
 {
     public class CreateCommentDto
     {
-        [Required, StringLength(2000)]
+        [Required(ErrorMessage = "Comment content is required.")]
+        [StringLength(2000, ErrorMessage = "Comment content cannot exceed 2000 characters.")]
         public string Content { get; set; } = string.Empty;
 
         public List<CreateCommentMediaDto>? Media { get; set; }
@@ -12,9 +13,12 @@ namespace Kemora.Application.DTOs
 
     public class CreateCommentMediaDto
     {
-        [Required] public string MediaURL { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Media URL is required.")]
+        [Url(ErrorMessage = "Media URL must be a valid URL.")]
+        public string MediaURL { get; set; } = string.Empty;
 
-        [Required, RegularExpression("^(Image|Video)$")]
+        [Required(ErrorMessage = "Media type is required (Image or Video).")]
+        [RegularExpression("^(Image|Video)$", ErrorMessage = "MediaType must be 'Image' or 'Video'.")]
         public string MediaType { get; set; } = "Image";
     }
 

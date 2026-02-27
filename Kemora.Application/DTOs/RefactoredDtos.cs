@@ -74,15 +74,23 @@ namespace Kemora.Application.DTOs
 
     public class ReactToPostDto
     {
-        [Required]
+        [Required(ErrorMessage = "Reaction type is required.")]
+        [RegularExpression("^(Like|Love|Wow|Sad|Angry)$", ErrorMessage = "Invalid reaction type.")]
         public string ReactionType { get; set; } = "Like";
+
+        [Required(ErrorMessage = "Action (add/remove) is required.")]
+        [RegularExpression("^(add|remove)$", ErrorMessage = "Action must be 'add' or 'remove'.")]
         public string Action { get; set; } = "add"; // "add" or "remove"
     }
 
     public class ReactToCommentDto
     {
-        [Required]
+        [Required(ErrorMessage = "Reaction type is required.")]
+        [RegularExpression("^(Like|Love|Wow|Sad|Angry)$", ErrorMessage = "Invalid reaction type.")]
         public string ReactionType { get; set; } = "Like";
+
+        [Required(ErrorMessage = "Action (add/remove) is required.")]
+        [RegularExpression("^(add|remove)$", ErrorMessage = "Action must be 'add' or 'remove'.")]
         public string Action { get; set; } = "add";
     }
 

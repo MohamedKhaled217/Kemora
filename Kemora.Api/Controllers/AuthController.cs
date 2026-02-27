@@ -103,5 +103,19 @@ namespace Kemora.Api.Controllers
             if (!succeeded) return BadRequest(error);
             return Ok(new { message = "Password reset successfully." });
         }
+
+        /// <summary>
+        /// Manually trigger an email confirmation for a user (Admin only).
+        /// </summary>
+        [HttpPost("admin/send-confirmation")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ResendConfirmation([FromQuery] string email)
+        {
+            var (succeeded, error) = await _authService.SendEmailConfirmationAsync(email);
+            if (!succeeded) return BadRequest(error);
+            return Ok(new { message = "Confirmation email sent." });
+        }
     }
 }

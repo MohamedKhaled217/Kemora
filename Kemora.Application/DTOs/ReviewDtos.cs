@@ -4,10 +4,12 @@ namespace Kemora.Application.DTOs
 {
     public class CreateReviewDto
     {
-        [Required, Range(1, 5, ErrorMessage = "Rating must be between 1 and 5.")]
+        [Required(ErrorMessage = "Rating is required.")]
+        [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5 stars.")]
         public int Rating { get; set; }
 
-        [Required, StringLength(2000)]
+        [Required(ErrorMessage = "Review text is required.")]
+        [StringLength(2000, ErrorMessage = "Review text cannot exceed 2000 characters.")]
         public string Text { get; set; } = string.Empty;
     }
 

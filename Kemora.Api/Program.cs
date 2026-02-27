@@ -2,6 +2,8 @@ using Kemora.Domain.Entities;
 using Kemora.Domain.Interfaces;
 using Kemora.Infrastructure.Data;
 using Kemora.Infrastructure.Services;
+using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -164,7 +166,25 @@ builder.Services.AddHttpClient("LocalAI", client =>
     client.Timeout = TimeSpan.FromMinutes(5);
 });
 
-builder.Services.AddControllers(); // We use Controllers, not Minimal APIs
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value!.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            return new BadRequestObjectResult(new
+            {
+                Message = "One or more validation errors occurred.",
+                Errors = errors
+            });
+        };
+    }); // We use Controllers, not Minimal APIs
 
 builder.Services.AddApiVersioning(options =>
 {

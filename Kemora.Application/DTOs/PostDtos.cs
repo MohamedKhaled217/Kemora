@@ -6,7 +6,8 @@ namespace Kemora.Application.DTOs
 
     public class CreatePostDto
     {
-        [Required, StringLength(5000)]
+        [Required(ErrorMessage = "Post content is required.")]
+        [StringLength(5000, ErrorMessage = "Post content cannot exceed 5000 characters.")]
         public string Content { get; set; } = string.Empty;
 
         public List<CreatePostMediaDto>? Media { get; set; }
@@ -14,9 +15,12 @@ namespace Kemora.Application.DTOs
 
     public class CreatePostMediaDto
     {
-        [Required] public string MediaURL { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Media URL is required.")]
+        [Url(ErrorMessage = "Media URL must be a valid URL.")]
+        public string MediaURL { get; set; } = string.Empty;
 
-        [Required, RegularExpression("^(Image|Video)$", ErrorMessage = "MediaType must be 'Image' or 'Video'.")]
+        [Required(ErrorMessage = "Media type is required (Image or Video).")]
+        [RegularExpression("^(Image|Video)$", ErrorMessage = "MediaType must be 'Image' or 'Video'.")]
         public string MediaType { get; set; } = "Image";
     }
 

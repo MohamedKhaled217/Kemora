@@ -168,5 +168,17 @@ namespace Kemora.Infrastructure.Services
 
             return (true, null!);
         }
+
+        public async Task<(bool Succeeded, string Error)> SendEmailConfirmationAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return (false, "User not found");
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            await _emailService.SendEmailAsync(user.Email!, "Confirm your Kemora email",
+                $"Please confirm your email using this token: {token}");
+
+            return (true, null!);
+        }
     }
 }

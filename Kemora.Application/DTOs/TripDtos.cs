@@ -4,11 +4,18 @@ namespace Kemora.Application.DTOs
 {
     public class CreateTripDto
     {
-        [Required, StringLength(200)]
+        [Required(ErrorMessage = "Trip name is required.")]
+        [StringLength(200, ErrorMessage = "Trip name cannot exceed 200 characters.")]
         public string Name { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters.")]
         public string Description { get; set; } = string.Empty;
-        [Required] public DateTime StartDate { get; set; }
-        [Required] public DateTime EndDate { get; set; }
+
+        [Required(ErrorMessage = "Start date is required.")]
+        public DateTime StartDate { get; set; }
+
+        [Required(ErrorMessage = "End date is required.")]
+        public DateTime EndDate { get; set; }
     }
 
     public class UpdateTripDto
@@ -40,8 +47,13 @@ namespace Kemora.Application.DTOs
 
     public class AddTripPlaceDto
     {
-        [Required] public int PlaceID { get; set; }
-        [Required] public DateTime VisitDate { get; set; }
+        [Required(ErrorMessage = "Place ID is required.")]
+        public int PlaceID { get; set; }
+
+        [Required(ErrorMessage = "Visit date is required.")]
+        public DateTime VisitDate { get; set; }
+
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
         public string? Notes { get; set; }
     }
 

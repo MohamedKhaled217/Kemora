@@ -4,7 +4,10 @@ namespace Kemora.Application.DTOs
 {
     public class CreatePhotoDto
     {
-        [Required] public string ImageURL { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Photo URL is required.")]
+        [Url(ErrorMessage = "Photo URL must be a valid URL.")]
+        public string ImageURL { get; set; } = string.Empty;
+
         public bool IsMain { get; set; }
     }
 

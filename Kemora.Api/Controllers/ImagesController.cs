@@ -24,11 +24,12 @@ namespace Kemora.Api.Controllers
         }
 
         /// <summary>
-        /// Upload an image file. Returns the public URL of the uploaded image.
+        /// Upload an image file (Admin only). Returns the public URL of the uploaded image.
         /// </summary>
         /// <param name="file">The image file to upload (JPEG, PNG, etc.).</param>
         /// <returns>The public URL of the uploaded image.</returns>
         [HttpPost("upload")]
+        [Authorize(Roles = "Admin")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

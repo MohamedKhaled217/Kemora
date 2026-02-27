@@ -25,9 +25,10 @@ namespace Kemora.Api.Controllers
         }
 
         /// <summary>
-        /// Add a photo to a place.
+        /// Add a photo to a place (Admin only).
         /// </summary>
         [HttpPost("places/{placeId}/photos")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(PhotoResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<PhotoResponseDto>> AddPhoto(int placeId, [FromBody] CreatePhotoDto dto)
@@ -49,9 +50,10 @@ namespace Kemora.Api.Controllers
         }
 
         /// <summary>
-        /// Set a photo as the main photo for a place.
+        /// Set a photo as the main photo for a place (Admin only).
         /// </summary>
         [HttpPut("places/{placeId}/photos/{photoId}/main")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> SetMainPhoto(int placeId, int photoId)
@@ -61,9 +63,10 @@ namespace Kemora.Api.Controllers
         }
 
         /// <summary>
-        /// Delete a photo from a place.
+        /// Delete a photo from a place (Admin only).
         /// </summary>
         [HttpDelete("places/{placeId}/photos/{photoId}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeletePhoto(int placeId, int photoId)
