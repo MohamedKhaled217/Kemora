@@ -9,6 +9,9 @@ namespace Kemora.Domain.Entities
         public string FullName { get; set; }
         public int TotalPoints { get; set; } = 0;
 
+        public string? RefreshToken { get; set; }
+        public DateTime RefreshTokenExpiryTime { get; set; }
+
         // Navigation Properties
         public ICollection<UserBadge> UserBadges { get; set; }
         public ICollection<UserPoint> PointHistory { get; set; }

@@ -1,95 +1,107 @@
-﻿using Kemora.Api.DTOs;
-using Kemora.Domain.Entities;
-using Kemora.Domain.Interfaces;
-using Microsoft.AspNetCore.Identity;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Kemora.Infrastructure.Data;
+using Asp.Versioning;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.RateLimiting;
+
 namespace Kemora.Api.Controllers
 {
-    [Route("api/[controller]")]
+    /// <summary>
+    /// Handles user authentication: registration, login, token refresh, email confirmation, and password reset.
+    /// </summary>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
+    [EnableRateLimiting("auth")]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly ITokenService _tokenService;
-        private readonly ApplicationDbContext _context;
+        private readonly IAuthService _authService;
 
-        public AuthController(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            ITokenService tokenService,
-            ApplicationDbContext context)
+        public AuthController(IAuthService authService)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _tokenService = tokenService;
-            _context = context;
+            _authService = authService;
         }
 
+        /// <summary>
+        /// Register a new user account.
+        /// </summary>
+        /// <param name="model">Registration details including full name, email, and password.</param>
+        /// <returns>Authentication tokens and user info.</returns>
         [HttpPost("register")]
-        public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto model)
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
-            // 1. Start a Transaction
-            using var transaction = _context.Database.BeginTransaction();
-
-            try
-            {
-                if (await _userManager.FindByEmailAsync(model.Email) != null)
-                    return BadRequest("Email already exists");
-
-                var user = new ApplicationUser
-                {
-                    UserName = model.Email,
-                    Email = model.Email,
-                    FullName = model.FullName,
-                    TotalPoints = 50
-                };
-
-                // 2. Save User (Database is modified here, but not "committed" permanently yet)
-                var result = await _userManager.CreateAsync(user, model.Password);
-
-                if (!result.Succeeded) return BadRequest(result.Errors);
-
-                // 3. Generate Token (If this fails, we jump to 'catch')
-                var token = _tokenService.CreateToken(user);
-
-                // 4. Commit (Everything worked, so make the DB changes permanent)
-                await transaction.CommitAsync();
-
-                return new AuthResponseDto
-                {
-                    UserId = user.Id,
-                    Email = user.Email,
-                    FullName = user.FullName,
-                    Token = token
-                };
-            }
-            catch (Exception ex)
-            {
-                // 5. Rollback (Something failed! Undo the user creation)
-                await transaction.RollbackAsync();
-                return StatusCode(500, "Registration failed: " + ex.Message);
-            }
+            var (succeeded, error, data) = await _authService.RegisterAsync(model);
+            if (!succeeded) return BadRequest(error);
+            return Ok(data);
         }
 
+        /// <summary>
+        /// Login with email and password.
+        /// </summary>
+        /// <param name="model">Login credentials.</param>
+        /// <returns>JWT access token and refresh token.</returns>
         [HttpPost("login")]
-        public async Task<ActionResult<AuthResponseDto>> Login(LoginDto model)
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null) return Unauthorized("Invalid Email");
+            var (succeeded, error, data) = await _authService.LoginAsync(model);
+            if (!succeeded) return Unauthorized(error);
+            return Ok(data);
+        }
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
-            if (!result.Succeeded) return Unauthorized("Invalid Password");
+        /// <summary>
+        /// Refresh an expired JWT token using a valid refresh token.
+        /// </summary>
+        [HttpPost("refresh")]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto model)
+        {
+            var (succeeded, error, data) = await _authService.RefreshTokenAsync(model);
+            if (!succeeded) return Unauthorized(error);
+            return Ok(data);
+        }
 
-            return new AuthResponseDto
-            {
-                UserId = user.Id,
-                Email = user.Email,
-                FullName = user.FullName,
-                Token = _tokenService.CreateToken(user)
-            };
+        /// <summary>
+        /// Confirm a user's email address using the confirmation token sent during registration.
+        /// </summary>
+        [HttpPost("confirm-email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailDto model)
+        {
+            var (succeeded, error) = await _authService.ConfirmEmailAsync(model.UserId, model.Token);
+            if (!succeeded) return BadRequest(error);
+            return Ok(new { message = "Email confirmed successfully." });
+        }
+
+        /// <summary>
+        /// Request a password reset token. An email will be sent if the account exists.
+        /// </summary>
+        [HttpPost("forgot-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto model)
+        {
+            var (succeeded, error) = await _authService.ForgotPasswordAsync(model.Email);
+            return Ok(new { message = "If your email exists, a reset link has been sent." });
+        }
+
+        /// <summary>
+        /// Reset a user's password using the token received via email.
+        /// </summary>
+        [HttpPost("reset-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto model)
+        {
+            var (succeeded, error) = await _authService.ResetPasswordAsync(model.Email, model.Token, model.NewPassword);
+            if (!succeeded) return BadRequest(error);
+            return Ok(new { message = "Password reset successfully." });
         }
     }
 }

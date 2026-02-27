@@ -10,8 +10,23 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Net.Http.Headers;
+using System.Threading.RateLimiting;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", Serilog.Events.LogEventLevel.Warning)
+    .WriteTo.Console()
+    .WriteTo.File("logs/kemora-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
+try
+{
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 // 1. Database Configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -20,12 +35,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2. Identity (User Management) Config
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    // Development settings (Make stricter for production)
+    // Production password settings
     options.User.RequireUniqueEmail = true;
-    options.Password.RequireDigit = false;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
@@ -51,8 +67,86 @@ builder.Services.AddAuthentication(options =>
 });
 
 // 4. Register Services (Dependency Injection)
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IPlaceService, OverpassPlacesService>();
+
+// Domain / Infrastructure Repositories
+builder.Services.AddScoped(typeof(Kemora.Domain.Interfaces.IRepository<>), typeof(Kemora.Infrastructure.Repositories.Repository<>));
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IPostRepository, Kemora.Infrastructure.Repositories.PostRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.ICommentRepository, Kemora.Infrastructure.Repositories.CommentRepository>();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<Kemora.Application.Interfaces.ICacheService, Kemora.Infrastructure.Services.MemoryCacheService>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IReactionRepository, Kemora.Infrastructure.Repositories.ReactionRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IUnitOfWork, Kemora.Infrastructure.Repositories.UnitOfWork>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.ITripRepository, Kemora.Infrastructure.Repositories.TripRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IPlaceRepository, Kemora.Infrastructure.Repositories.PlaceRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IReviewRepository, Kemora.Infrastructure.Repositories.ReviewRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IPhotoRepository, Kemora.Infrastructure.Repositories.PhotoRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IEventRepository, Kemora.Infrastructure.Repositories.EventRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IFavoriteRepository, Kemora.Infrastructure.Repositories.FavoriteRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IBadgeRepository, Kemora.Infrastructure.Repositories.BadgeRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.INotificationRepository, Kemora.Infrastructure.Repositories.NotificationRepository>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IUserRepository, Kemora.Infrastructure.Repositories.UserRepository>();
+
+// Application Services
+builder.Services.AddScoped<Kemora.Domain.Interfaces.ITokenService, Kemora.Infrastructure.Services.TokenService>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IPlaceService, Kemora.Infrastructure.Services.OverpassPlacesService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IAuthService, Kemora.Infrastructure.Services.AuthService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IBadgeService, Kemora.Application.Services.BadgeService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IEmailService, Kemora.Infrastructure.Services.LoggerEmailService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IImageService, Kemora.Infrastructure.Services.CloudinaryImageService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.ICommentService, Kemora.Application.Services.CommentService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IEventService, Kemora.Application.Services.EventService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IFavoriteService, Kemora.Application.Services.FavoriteService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.INotificationService, Kemora.Application.Services.NotificationService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IPhotoService, Kemora.Application.Services.PhotoService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IPlaceManagementService, Kemora.Application.Services.PlaceManagementService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IPlacePublicService, Kemora.Application.Services.PlacePublicService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IPostService, Kemora.Application.Services.PostService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IProfileService, Kemora.Infrastructure.Services.ProfileService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IReactionService, Kemora.Application.Services.ReactionService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IReviewService, Kemora.Application.Services.ReviewService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.ITripService, Kemora.Application.Services.TripService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.ITripPlannerService, Kemora.Application.Services.TripPlannerService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IUserManagementService, Kemora.Infrastructure.Services.UserManagementService>();
+
+// SignalR
+builder.Services.AddSignalR();
+builder.Services.AddScoped<Kemora.Application.Interfaces.INotificationPusher, Kemora.Api.Services.SignalRNotificationPusher>();
+
+// Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("fixed", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
+// Health Checks
+builder.Services.AddHealthChecks()
+    .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!);
+
+// Response Caching
+builder.Services.AddResponseCaching();
+
+// AutoMapper
+builder.Services.AddAutoMapper(cfg => {
+    cfg.AddProfile<Kemora.Application.Mapping.MappingProfile>();
+});
 
 // Named HttpClient for OpenStreetMap Overpass API (free, no key required)
 builder.Services.AddHttpClient("Overpass", client =>
@@ -72,12 +166,41 @@ builder.Services.AddHttpClient("LocalAI", client =>
 
 builder.Services.AddControllers(); // We use Controllers, not Minimal APIs
 
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
 
 // 5. Swagger / OpenAPI Config (With Auth Support)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Kemora API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Kemora Tourism API",
+        Version = "v1",
+        Description = "RESTful API for the Kemora tourism platform — explore Egyptian destinations, plan trips, engage with the community, and earn gamification badges.",
+        Contact = new OpenApiContact
+        {
+            Name = "Kemora Team",
+            Email = "support@kemora.app"
+        },
+        License = new OpenApiLicense
+        {
+            Name = "MIT License"
+        }
+    });
+
+    // Include XML comments from API project
+    var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+    if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
 
     // Enable the "Authorize" button in Swagger UI
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -108,7 +231,21 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "https://kemora.app")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
+
+app.UseMiddleware<Kemora.Api.Middlewares.ExceptionHandlingMiddleware>();
+app.UseSerilogRequestLogging();
 
 // 6. Middleware Pipeline
 
@@ -121,10 +258,38 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowFrontend");
+
 // IMPORTANT: Authentication must come BEFORE Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseResponseCaching();
 
-app.MapControllers(); // Maps the AuthController we created
+app.MapControllers();
+app.MapHub<Kemora.Api.Hubs.NotificationHub>("/hubs/notifications");
+app.MapHealthChecks("/health");
+app.UseRateLimiter();
+
+using (var scope = app.Services.CreateScope())
+{
+    await RoleSeeder.SeedRolesAsync(scope.ServiceProvider);
+
+    if (app.Environment.IsDevelopment())
+    {
+        await DataSeeder.SeedAsync(scope.ServiceProvider);
+    }
+}
 
 app.Run();
+
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
+
+public partial class Program { }

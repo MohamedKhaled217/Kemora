@@ -1,75 +1,70 @@
-using Kemora.Api.DTOs;
-using Kemora.Domain.Entities;
-using Kemora.Infrastructure.Data;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Asp.Versioning;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Kemora.Api.Controllers
 {
-    [Route("api/[controller]")]
+    /// <summary>
+    /// User profile management: view/edit own profile, view public profiles.
+    /// </summary>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [Authorize]
     public class ProfileController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ApplicationDbContext _context;
+        private readonly IProfileService _profileService;
 
-        public ProfileController(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
+        public ProfileController(IProfileService profileService)
         {
-            _userManager = userManager;
-            _context = context;
+            _profileService = profileService;
         }
 
-        /// <summary>Get the current authenticated user's profile.</summary>
-        [HttpGet]
-        public async Task<ActionResult<ProfileResponseDto>> GetMyProfile()
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
+        private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            return Ok(new ProfileResponseDto
-            {
-                UserId        = user.Id,
-                FullName      = user.FullName,
-                Email         = user.Email ?? string.Empty,
-                TotalPoints   = user.TotalPoints,
-                PostCount     = await _context.Posts.CountAsync(p => p.UserID == user.Id),
-                TripCount     = await _context.Trips.CountAsync(t => t.UserID == user.Id),
-                BadgeCount    = await _context.UserBadges.CountAsync(ub => ub.UserID == user.Id),
-                FavoriteCount = await _context.UserFavorites.CountAsync(uf => uf.UserID == user.Id)
-            });
+        /// <summary>
+        /// Get the authenticated user's profile.
+        /// </summary>
+        [HttpGet("my")]
+        [ProducesResponseType(typeof(ProfileDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ProfileDto>> GetMyProfile()
+        {
+            var profile = await _profileService.GetMyProfileAsync(GetUserId());
+            if (profile == null) return NotFound("User not found.");
+            return Ok(profile);
         }
 
-        /// <summary>Update the current user's profile.</summary>
-        [HttpPut]
-        public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateProfileDto dto)
+        /// <summary>
+        /// Update the authenticated user's profile.
+        /// </summary>
+        [HttpPut("my")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
-
-            user.FullName = dto.FullName;
-            await _userManager.UpdateAsync(user);
-            return NoContent();
+            if (await _profileService.UpdateProfileAsync(GetUserId(), dto))
+                return NoContent();
+            return BadRequest("Could not update profile.");
         }
 
-        /// <summary>Get a public profile for any user.</summary>
-        [HttpGet("{userId}")]
+        /// <summary>
+        /// Get a user's public profile by user ID.
+        /// </summary>
+        /// <param name="id">The user's ID.</param>
+        [HttpGet("{id}/public")]
         [AllowAnonymous]
-        public async Task<ActionResult<PublicProfileDto>> GetPublicProfile(string userId)
+        [ProducesResponseType(typeof(PublicProfileDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<PublicProfileDto>> GetPublicProfile(string id)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound("User not found.");
-
-            return Ok(new PublicProfileDto
-            {
-                UserId     = user.Id,
-                FullName   = user.FullName,
-                TotalPoints = user.TotalPoints,
-                BadgeCount = await _context.UserBadges.CountAsync(ub => ub.UserID == user.Id),
-                PostCount  = await _context.Posts.CountAsync(p => p.UserID == user.Id)
-            });
+            var profile = await _profileService.GetPublicProfileAsync(id);
+            if (profile == null) return NotFound("User not found.");
+            return Ok(profile);
         }
     }
 }

@@ -1,78 +1,69 @@
-using Kemora.Api.DTOs;
-using Kemora.Domain.Entities;
-using Kemora.Infrastructure.Data;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Asp.Versioning;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Kemora.Api.Controllers
 {
-    [Route("api/places/{placeId}/reviews")]
+    /// <summary>
+    /// User reviews for places: submit, browse, and delete reviews with ratings.
+    /// </summary>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/places/{placeId}/reviews")]
     [ApiController]
     [Authorize]
     public class ReviewsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        public ReviewsController(ApplicationDbContext context) => _context = context;
+        private readonly IReviewService _reviewService;
 
-        [HttpPost]
-        public async Task<ActionResult<ReviewResponseDto>> CreateReview(
-            int placeId, [FromBody] CreateReviewDto dto)
+        public ReviewsController(IReviewService reviewService)
         {
-            if (!await _context.Places.AnyAsync(p => p.PlaceID == placeId))
-                return NotFound("Place not found.");
-
-            var userName = User.Identity?.Name ?? "Anonymous";
-            var review = new Review
-            {
-                AuthorName = userName,
-                Rating     = dto.Rating,
-                Text       = dto.Text,
-                PlaceID    = placeId
-            };
-            _context.Reviews.Add(review);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetReviews), new { placeId },
-                new ReviewResponseDto
-                {
-                    ReviewID = review.ReviewID, AuthorName = review.AuthorName,
-                    Rating = review.Rating, Text = review.Text, PlaceID = placeId
-                });
+            _reviewService = reviewService;
         }
 
+        private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        private string GetUserName() => User.FindFirstValue(ClaimTypes.Name) ?? "Anonymous";
+
+        /// <summary>
+        /// Submit a review for a place.
+        /// </summary>
+        /// <param name="placeId">The place to review.</param>
+        /// <param name="dto">Review content and rating.</param>
+        [HttpPost]
+        [ProducesResponseType(typeof(ReviewResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ReviewResponseDto>> AddReview(int placeId, [FromBody] CreateReviewDto dto)
+        {
+            var rev = await _reviewService.CreateReviewAsync(GetUserId(), GetUserName(), placeId, dto);
+            if (rev == null) return NotFound("Place not found.");
+            return Ok(rev);
+        }
+
+        /// <summary>
+        /// Get paginated reviews for a place.
+        /// </summary>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<List<ReviewResponseDto>>> GetReviews(
-            int placeId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        [ProducesResponseType(typeof(PagedResult<ReviewResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<ReviewResponseDto>>> GetReviews(int placeId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            if (!await _context.Places.AnyAsync(p => p.PlaceID == placeId))
-                return NotFound("Place not found.");
-
-            var reviews = await _context.Reviews
-                .Where(r => r.PlaceID == placeId)
-                .OrderByDescending(r => r.ReviewID)
-                .Skip((page - 1) * pageSize).Take(pageSize)
-                .Select(r => new ReviewResponseDto
-                {
-                    ReviewID = r.ReviewID, AuthorName = r.AuthorName,
-                    Rating = r.Rating, Text = r.Text, PlaceID = r.PlaceID
-                }).ToListAsync();
-
-            return Ok(reviews);
+            return Ok(await _reviewService.GetReviewsAsync(placeId, page, pageSize));
         }
 
-        [HttpDelete("/api/reviews/{id}")]
+        /// <summary>
+        /// Delete your own review.
+        /// </summary>
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteReview(int id)
         {
-            var review = await _context.Reviews.FindAsync(id);
-            if (review == null) return NotFound();
-            // Only author (by name match) can delete – or admin in future
-            if (review.AuthorName != (User.Identity?.Name ?? ""))
-                return Forbid();
-            _context.Reviews.Remove(review);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            if (await _reviewService.DeleteReviewAsync(id, GetUserName(), GetUserId()))
+                return NoContent();
+            return NotFound("Review not found or unauthorized.");
         }
     }
 }

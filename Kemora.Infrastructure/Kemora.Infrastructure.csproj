@@ -8,17 +8,22 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Kemora.Domain\Kemora.Domain.csproj" />
+		<ProjectReference Include="..\Kemora.Application\Kemora.Application.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="CloudinaryDotNet" Version="1.28.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
 
-		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.3.0" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.14.0" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
 
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.3" />
+	</ItemGroup>
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
 	<ItemGroup>

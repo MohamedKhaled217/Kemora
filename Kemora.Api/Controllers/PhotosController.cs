@@ -1,76 +1,75 @@
-using Kemora.Api.DTOs;
-using Kemora.Domain.Entities;
-using Kemora.Infrastructure.Data;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Asp.Versioning;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Kemora.Api.Controllers
 {
-    [Route("api/places/{placeId}/photos")]
+    /// <summary>
+    /// Manage photos for places: add, list, set main, and delete.
+    /// </summary>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}")]
     [ApiController]
     [Authorize]
     public class PhotosController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        public PhotosController(ApplicationDbContext context) => _context = context;
+        private readonly IPhotoService _photoService;
 
-        [HttpPost]
+        public PhotosController(IPhotoService photoService)
+        {
+            _photoService = photoService;
+        }
+
+        /// <summary>
+        /// Add a photo to a place.
+        /// </summary>
+        [HttpPost("places/{placeId}/photos")]
+        [ProducesResponseType(typeof(PhotoResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<PhotoResponseDto>> AddPhoto(int placeId, [FromBody] CreatePhotoDto dto)
         {
-            if (!await _context.Places.AnyAsync(p => p.PlaceID == placeId))
-                return NotFound("Place not found.");
-
-            // If this is marked as main, un‑main existing ones
-            if (dto.IsMain)
-            {
-                var existing = await _context.Photos
-                    .Where(p => p.PlaceID == placeId && p.IsMain).ToListAsync();
-                existing.ForEach(p => p.IsMain = false);
-            }
-
-            var photo = new Photo { ImageURL = dto.ImageURL, IsMain = dto.IsMain, PlaceID = placeId };
-            _context.Photos.Add(photo);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetPhotos), new { placeId },
-                new PhotoResponseDto { PhotoID = photo.PhotoID, ImageURL = photo.ImageURL, IsMain = photo.IsMain, PlaceID = placeId });
+            var photo = await _photoService.AddPhotoAsync(placeId, dto);
+            if (photo == null) return NotFound("Place not found.");
+            return Ok(photo);
         }
 
-        [HttpGet]
+        /// <summary>
+        /// Get all photos for a place.
+        /// </summary>
+        [HttpGet("places/{placeId}/photos")]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(List<PhotoResponseDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<List<PhotoResponseDto>>> GetPhotos(int placeId)
         {
-            return Ok(await _context.Photos
-                .Where(p => p.PlaceID == placeId)
-                .Select(p => new PhotoResponseDto { PhotoID = p.PhotoID, ImageURL = p.ImageURL, IsMain = p.IsMain, PlaceID = p.PlaceID })
-                .ToListAsync());
+            return Ok(await _photoService.GetPlacePhotosAsync(placeId));
         }
 
-        [HttpPut("/api/photos/{id}/set-main")]
-        public async Task<IActionResult> SetMainPhoto(int id)
+        /// <summary>
+        /// Set a photo as the main photo for a place.
+        /// </summary>
+        [HttpPut("places/{placeId}/photos/{photoId}/main")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SetMainPhoto(int placeId, int photoId)
         {
-            var photo = await _context.Photos.FindAsync(id);
-            if (photo == null) return NotFound();
-
-            // Un‑main siblings
-            var siblings = await _context.Photos
-                .Where(p => p.PlaceID == photo.PlaceID && p.IsMain).ToListAsync();
-            siblings.ForEach(p => p.IsMain = false);
-
-            photo.IsMain = true;
-            await _context.SaveChangesAsync();
-            return NoContent();
+            if (await _photoService.SetMainPhotoAsync(placeId, photoId)) return NoContent();
+            return NotFound();
         }
 
-        [HttpDelete("/api/photos/{id}")]
-        public async Task<IActionResult> DeletePhoto(int id)
+        /// <summary>
+        /// Delete a photo from a place.
+        /// </summary>
+        [HttpDelete("places/{placeId}/photos/{photoId}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeletePhoto(int placeId, int photoId)
         {
-            var photo = await _context.Photos.FindAsync(id);
-            if (photo == null) return NotFound();
-            _context.Photos.Remove(photo);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            if (await _photoService.DeletePhotoAsync(placeId, photoId)) return NoContent();
+            return NotFound();
         }
     }
 }

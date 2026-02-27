@@ -4,6 +4,7 @@ namespace Kemora.Domain.Interfaces
 {
     public interface ITokenService
     {
-        string CreateToken(ApplicationUser user);
+        Task<string> CreateTokenAsync(ApplicationUser user);
+        string GenerateRefreshToken();
     }
 }

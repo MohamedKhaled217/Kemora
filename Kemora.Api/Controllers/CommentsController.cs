@@ -1,117 +1,82 @@
-using Kemora.Api.DTOs;
-using Kemora.Domain.Entities;
-using Kemora.Infrastructure.Data;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Asp.Versioning;
+using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Kemora.Api.Controllers
 {
-    [Route("api")]
+    /// <summary>
+    /// Manage comments on posts: create, list, update, and delete.
+    /// </summary>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}")]
     [ApiController]
     [Authorize]
     public class CommentsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ICommentService _commentService;
 
-        public CommentsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public CommentsController(ICommentService commentService)
         {
-            _context = context;
-            _userManager = userManager;
+            _commentService = commentService;
         }
 
-        private string GetUserId() =>
-            User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+        /// <summary>
+        /// Add a comment to a post.
+        /// </summary>
+        /// <param name="postId">The post to comment on.</param>
+        /// <param name="dto">Comment content and optional media.</param>
         [HttpPost("posts/{postId}/comments")]
-        public async Task<ActionResult<CommentResponseDto>> CreateComment(
-            int postId, [FromBody] CreateCommentDto dto)
+        [ProducesResponseType(typeof(CommentResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<CommentResponseDto>> CreateComment(int postId, [FromBody] CreateCommentDto dto)
         {
-            if (!await _context.Posts.AnyAsync(p => p.PostID == postId))
-                return NotFound("Post not found.");
-
-            var userId = GetUserId();
-            var user = await _userManager.FindByIdAsync(userId);
-
-            var comment = new Comment
-            {
-                Content   = dto.Content,
-                CreatedAt = DateTime.UtcNow,
-                PostID    = postId,
-                UserID    = userId,
-                Media     = dto.Media?.Select(m => new CommentMedia
-                {
-                    MediaURL  = m.MediaURL,
-                    MediaType = m.MediaType
-                }).ToList() ?? []
-            };
-
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetComments), new { postId },
-                new CommentResponseDto
-                {
-                    CommentID     = comment.CommentID,
-                    Content       = comment.Content,
-                    CreatedAt     = comment.CreatedAt,
-                    AuthorId      = userId,
-                    AuthorName    = user!.FullName,
-                    Media         = comment.Media.Select(m => new CommentMediaResponseDto
-                        { MediaID = m.MediaID, MediaURL = m.MediaURL, MediaType = m.MediaType }).ToList(),
-                    ReactionCount = 0
-                });
+            var comment = await _commentService.CreateCommentAsync(postId, GetUserId(), dto);
+            if (comment == null) return NotFound("Post not found.");
+            return Ok(comment);
         }
 
+        /// <summary>
+        /// Get paginated comments for a post.
+        /// </summary>
         [HttpGet("posts/{postId}/comments")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<CommentResponseDto>>> GetComments(
-            int postId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        [ProducesResponseType(typeof(PagedResult<CommentResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<CommentResponseDto>>> GetComments(int postId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            if (!await _context.Posts.AnyAsync(p => p.PostID == postId))
-                return NotFound("Post not found.");
-
-            return Ok(await _context.Comments
-                .Include(c => c.User).Include(c => c.Media).Include(c => c.Reactions)
-                .Where(c => c.PostID == postId)
-                .OrderByDescending(c => c.CreatedAt)
-                .Skip((page - 1) * pageSize).Take(pageSize)
-                .Select(c => new CommentResponseDto
-                {
-                    CommentID     = c.CommentID,
-                    Content       = c.Content,
-                    CreatedAt     = c.CreatedAt,
-                    AuthorId      = c.UserID,
-                    AuthorName    = c.User.FullName,
-                    Media         = c.Media.Select(m => new CommentMediaResponseDto
-                        { MediaID = m.MediaID, MediaURL = m.MediaURL, MediaType = m.MediaType }).ToList(),
-                    ReactionCount = c.Reactions.Count
-                }).ToListAsync());
+            return Ok(await _commentService.GetCommentsAsync(postId, page, pageSize));
         }
 
+        /// <summary>
+        /// Update your own comment.
+        /// </summary>
         [HttpPut("comments/{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateComment(int id, [FromBody] UpdateCommentDto dto)
         {
-            var comment = await _context.Comments.FindAsync(id);
-            if (comment == null) return NotFound();
-            if (comment.UserID != GetUserId()) return Forbid();
-            comment.Content = dto.Content;
-            await _context.SaveChangesAsync();
-            return NoContent();
+            if (await _commentService.UpdateCommentAsync(id, GetUserId(), dto))
+                return NoContent();
+            return NotFound("Comment not found or unauthorized.");
         }
 
+        /// <summary>
+        /// Delete your own comment.
+        /// </summary>
         [HttpDelete("comments/{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteComment(int id)
         {
-            var comment = await _context.Comments.FindAsync(id);
-            if (comment == null) return NotFound();
-            if (comment.UserID != GetUserId()) return Forbid();
-            _context.Comments.Remove(comment);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            if (await _commentService.DeleteCommentAsync(id, GetUserId()))
+                return NoContent();
+            return NotFound("Comment not found or unauthorized.");
         }
     }
 }

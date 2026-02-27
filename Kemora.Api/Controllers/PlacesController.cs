@@ -1,170 +1,80 @@
-using Kemora.Api.DTOs;
-using Kemora.Domain.Interfaces;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
+using System.Threading.Tasks;
 
 namespace Kemora.Api.Controllers
 {
     /// <summary>
-    /// Provides endpoints to discover nearby places via Google Maps
-    /// and generate AI-powered trip plans using a local language model.
+    /// Public-facing place browsing and AI-powered trip planning.
     /// </summary>
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [Authorize]
     public class PlacesController : ControllerBase
     {
-        private readonly IPlaceService _placeService;
-        private readonly ILogger<PlacesController> _logger;
+        private readonly IPlacePublicService _placeService;
+        private readonly ITripPlannerService _tripPlannerService;
 
-        public PlacesController(IPlaceService placeService, ILogger<PlacesController> logger)
+        public PlacesController(IPlacePublicService placeService, ITripPlannerService tripPlannerService)
         {
             _placeService = placeService;
-            _logger = logger;
+            _tripPlannerService = tripPlannerService;
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        // POST /api/places/nearby
-        // ──────────────────────────────────────────────────────────────────────
-
         /// <summary>
-        /// Fetch hotels, restaurants, museums, cafes, and tourist attractions
-        /// within a radius band [minRadiusKm, maxRadiusKm] around the supplied coordinates.
+        /// Browse places with optional filters. Supports search, category, and governorate filtering.
         /// </summary>
-        /// <remarks>
-        /// Example request body:
-        /// <code>
-        /// { "latitude": 30.0444, "longitude": 31.2357, "minRadiusKm": 4, "maxRadiusKm": 15 }
-        /// </code>
-        /// </remarks>
-        [HttpPost("nearby")]
-        [ProducesResponseType(typeof(NearbyPlacesResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<NearbyPlacesResponseDto>> GetNearbyPlaces(
-            [FromBody] NearbyPlacesRequestDto request)
+        /// <param name="governorateId">Optional governorate filter.</param>
+        /// <param name="categoryId">Optional category filter.</param>
+        /// <param name="search">Optional text search.</param>
+        /// <param name="page">Page number (default: 1).</param>
+        /// <param name="pageSize">Items per page (default: 20).</param>
+        [HttpGet]
+        [AllowAnonymous]
+        [ResponseCache(Duration = 60)]
+        [ProducesResponseType(typeof(PagedResult<PlacePublicDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<PlacePublicDto>>> GetPlaces(
+            [FromQuery] int? governorateId,
+            [FromQuery] int? categoryId,
+            [FromQuery] string? search,
+            [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            if (request.MinRadiusKm >= request.MaxRadiusKm)
-                return BadRequest("MinRadiusKm must be less than MaxRadiusKm.");
-
-            try
-            {
-                _logger.LogInformation(
-                    "Fetching places near ({Lat}, {Lng}) within {Min}–{Max} km",
-                    request.Latitude, request.Longitude, request.MinRadiusKm, request.MaxRadiusKm);
-
-                var places = await _placeService.FetchNearbyPlacesAsync(
-                    request.Latitude, request.Longitude,
-                    request.MinRadiusKm, request.MaxRadiusKm);
-
-                return Ok(new NearbyPlacesResponseDto
-                {
-                    TotalCount = places.Count,
-                    Places     = places
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // Missing API key or config
-                _logger.LogError(ex, "Configuration error in GetNearbyPlaces");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error in GetNearbyPlaces");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { error = "An unexpected error occurred while fetching places." });
-            }
+            return Ok(await _placeService.GetPlacesAsync(governorateId, categoryId, search, page, pageSize));
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        // POST /api/places/trip-plan
-        // ──────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Get detailed information about a specific place including photos, reviews, and events.
+        /// </summary>
+        /// <param name="id">The place ID.</param>
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        [ResponseCache(Duration = 120)]
+        [ProducesResponseType(typeof(PlaceDetailPublicDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<PlaceDetailPublicDto>> GetPlace(int id)
+        {
+            var place = await _placeService.GetPlaceDetailAsync(id);
+            if (place == null) return NotFound();
+            return Ok(place);
+        }
 
         /// <summary>
-        /// Fetches nearby places and sends them to the local AI model to generate
-        /// a complete, day-by-day trip itinerary.
+        /// Generate an AI-powered trip plan based on location, budget, and preferences.
         /// </summary>
-        /// <remarks>
-        /// Requires a Gemini API key configured in appsettings (Gemini:ApiKey).
-        /// Example request body:
-        /// <code>
-        /// {
-        ///   "latitude": 30.0444,
-        ///   "longitude": 31.2357,
-        ///   "minRadiusKm": 0,
-        ///   "maxRadiusKm": 5,
-        ///   "durationDays": 3,
-        ///   "budget": "Mid-Range",
-        ///   "location": "Cairo",
-        ///   "tourismTypes": ["CulturalHeritage", "Culinary"],
-        ///   "preferences": "solo traveler, loves history"
-        /// }
-        /// </code>
-        /// </remarks>
+        /// <param name="request">Trip plan parameters including coordinates, duration, and preferences.</param>
         [HttpPost("trip-plan")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(TripPlanResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<TripPlanResponseDto>> GenerateTripPlan(
-            [FromBody] TripPlanRequestDto request)
+        public async Task<ActionResult<TripPlanResponseDto>> GenerateTripPlan([FromBody] TripPlanRequestDto request)
         {
-            if (request.MinRadiusKm >= request.MaxRadiusKm)
-                return BadRequest("MinRadiusKm must be less than MaxRadiusKm.");
-
-            try
-            {
-                _logger.LogInformation(
-                    "Generating {Days}-day trip plan near ({Lat}, {Lng}), location: {Loc}, budget: {Budget}",
-                    request.DurationDays, request.Latitude, request.Longitude,
-                    request.Location ?? "not specified", request.Budget ?? "Mid-Range");
-
-                // Step 1 — fetch places from Overpass
-                var places = await _placeService.FetchNearbyPlacesAsync(
-                    request.Latitude, request.Longitude,
-                    request.MinRadiusKm, request.MaxRadiusKm);
-
-                if (places.Count == 0)
-                {
-                    return Ok(new TripPlanResponseDto
-                    {
-                        TotalPlacesFound = 0,
-                        Places           = [],
-                        TripPlan         = "No places found in the specified area. Try enlarging the radius."
-                    });
-                }
-
-                // Step 2 — generate trip plan via Gemini
-                var tripPlan = await _placeService.GenerateTripPlanAsync(
-                    places,
-                    request.DurationDays,
-                    request.Budget,
-                    request.Location,
-                    request.TourismTypes,
-                    request.Preferences);
-
-                return Ok(new TripPlanResponseDto
-                {
-                    TotalPlacesFound = places.Count,
-                    Places           = places,
-                    TripPlan         = tripPlan
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogError(ex, "Configuration error in GenerateTripPlan");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error in GenerateTripPlan");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { error = "An unexpected error occurred while generating the trip plan." });
-            }
+            var result = await _tripPlannerService.GenerateTripPlanAsync(request);
+            if (result == null) return BadRequest("Could not generate trip plan.");
+            return Ok(result);
         }
     }
 }

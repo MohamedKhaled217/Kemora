@@ -36,6 +36,7 @@ namespace Kemora.Infrastructure.Data
         public DbSet<UserBadge> UserBadges { get; set; }
         public DbSet<UserPoint> UserPoints { get; set; }
         public DbSet<UserFavorite> UserFavorites { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

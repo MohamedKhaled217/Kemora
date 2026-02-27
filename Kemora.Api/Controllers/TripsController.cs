@@ -1,114 +1,129 @@
-using Kemora.Api.DTOs;
-using Kemora.Domain.Entities;
-using Kemora.Infrastructure.Data;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Asp.Versioning;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Kemora.Api.Controllers
 {
-    [Route("api/[controller]")]
+    /// <summary>
+    /// Trip planning: create trips, manage itinerary places, update, and delete.
+    /// </summary>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [Authorize]
     public class TripsController : ControllerBase
     {
-        private readonly ApplicationDbContext _ctx;
-        public TripsController(ApplicationDbContext ctx) => _ctx = ctx;
+        private readonly ITripService _tripService;
+
+        public TripsController(ITripService tripService)
+        {
+            _tripService = tripService;
+        }
+
         private string UserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+        /// <summary>
+        /// Create a new trip.
+        /// </summary>
         [HttpPost]
+        [ProducesResponseType(typeof(TripDetailDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<TripDetailDto>> Create([FromBody] CreateTripDto dto)
         {
             if (dto.EndDate <= dto.StartDate) return BadRequest("EndDate must be after StartDate.");
-            var t = new Trip { Name = dto.Name, Description = dto.Description, StartDate = dto.StartDate, EndDate = dto.EndDate, UserID = UserId() };
-            _ctx.Trips.Add(t); await _ctx.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = t.TripID },
-                new TripDetailDto { TripID = t.TripID, Name = t.Name, Description = t.Description, StartDate = t.StartDate, EndDate = t.EndDate });
+
+            var t = await _tripService.CreateAsync(UserId(), dto);
+            return CreatedAtAction(nameof(Get), new { id = t.TripID }, t);
         }
 
+        /// <summary>
+        /// List the authenticated user's trips with pagination.
+        /// </summary>
         [HttpGet]
-        public async Task<ActionResult<List<TripListDto>>> List([FromQuery] int page = 1, [FromQuery] int ps = 20)
+        [ProducesResponseType(typeof(PagedResult<TripListDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<TripListDto>>> List([FromQuery] int page = 1, [FromQuery] int ps = 20)
         {
-            return Ok(await _ctx.Trips.Where(t => t.UserID == UserId()).OrderByDescending(t => t.StartDate)
-                .Skip((page - 1) * ps).Take(ps)
-                .Select(t => new TripListDto { TripID = t.TripID, Name = t.Name, StartDate = t.StartDate, EndDate = t.EndDate, PlaceCount = t.TripPlaces.Count })
-                .ToListAsync());
+            return Ok(await _tripService.ListAsync(UserId(), page, ps));
         }
 
+        /// <summary>
+        /// Get a specific trip with its places.
+        /// </summary>
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(TripDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<TripDetailDto>> Get(int id)
         {
-            var t = await _ctx.Trips.Include(x => x.TripPlaces).ThenInclude(tp => tp.Place).FirstOrDefaultAsync(x => x.TripID == id);
+            var t = await _tripService.GetAsync(UserId(), id);
             if (t == null) return NotFound();
-            if (t.UserID != UserId()) return Forbid();
-            return Ok(new TripDetailDto
-            {
-                TripID = t.TripID, Name = t.Name, Description = t.Description, StartDate = t.StartDate, EndDate = t.EndDate,
-                Places = t.TripPlaces.OrderBy(tp => tp.VisitDate).Select(tp => new TripPlaceResponseDto
-                { TripPlaceID = tp.TripPlaceID, PlaceID = tp.PlaceID, PlaceName = tp.Place.Name, VisitDate = tp.VisitDate, Notes = tp.Notes }).ToList()
-            });
+            return Ok(t);
         }
 
+        /// <summary>
+        /// Update a trip's details.
+        /// </summary>
         [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateTripDto dto)
         {
-            var t = await _ctx.Trips.FindAsync(id);
-            if (t == null) return NotFound();
-            if (t.UserID != UserId()) return Forbid();
-            if (dto.Name != null) t.Name = dto.Name;
-            if (dto.Description != null) t.Description = dto.Description;
-            if (dto.StartDate.HasValue) t.StartDate = dto.StartDate.Value;
-            if (dto.EndDate.HasValue) t.EndDate = dto.EndDate.Value;
-            await _ctx.SaveChangesAsync(); return NoContent();
+            if (dto.EndDate <= dto.StartDate) return BadRequest("EndDate must be after StartDate.");
+            if (await _tripService.UpdateAsync(UserId(), id, dto)) return NoContent();
+            return NotFound();
         }
 
+        /// <summary>
+        /// Delete a trip.
+        /// </summary>
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
-            var t = await _ctx.Trips.FindAsync(id);
-            if (t == null) return NotFound();
-            if (t.UserID != UserId()) return Forbid();
-            _ctx.Trips.Remove(t); await _ctx.SaveChangesAsync(); return NoContent();
+            if (await _tripService.DeleteAsync(UserId(), id)) return NoContent();
+            return NotFound();
         }
 
+        /// <summary>
+        /// Add a place to a trip's itinerary.
+        /// </summary>
         [HttpPost("{id}/places")]
+        [ProducesResponseType(typeof(TripPlaceResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<TripPlaceResponseDto>> AddPlace(int id, [FromBody] AddTripPlaceDto dto)
         {
-            var t = await _ctx.Trips.FindAsync(id);
-            if (t == null) return NotFound();
-            if (t.UserID != UserId()) return Forbid();
-            var place = await _ctx.Places.FindAsync(dto.PlaceID);
-            if (place == null) return BadRequest("Place not found.");
-            if (await _ctx.TripPlaces.AnyAsync(tp => tp.TripID == id && tp.PlaceID == dto.PlaceID)) return Conflict("Already added.");
-            var tp = new TripPlace { TripID = id, PlaceID = dto.PlaceID, VisitDate = dto.VisitDate, Notes = dto.Notes };
-            _ctx.TripPlaces.Add(tp); await _ctx.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id },
-                new TripPlaceResponseDto { TripPlaceID = tp.TripPlaceID, PlaceID = tp.PlaceID, PlaceName = place.Name, VisitDate = tp.VisitDate, Notes = tp.Notes });
+            var p = await _tripService.AddPlaceAsync(UserId(), id, dto);
+            if (p == null) return BadRequest("Trip or Place not found.");
+            return Ok(p);
         }
 
-        [HttpPut("{id}/places/{tpId}")]
-        public async Task<IActionResult> UpdatePlace(int id, int tpId, [FromBody] UpdateTripPlaceDto dto)
+        /// <summary>
+        /// Update a place's order or notes in the trip itinerary.
+        /// </summary>
+        [HttpPut("{tripId}/places/{tpId}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdatePlace(int tripId, int tpId, [FromBody] UpdateTripPlaceDto dto)
         {
-            var t = await _ctx.Trips.FindAsync(id);
-            if (t == null) return NotFound();
-            if (t.UserID != UserId()) return Forbid();
-            var tp = await _ctx.TripPlaces.FindAsync(tpId);
-            if (tp == null || tp.TripID != id) return NotFound();
-            if (dto.VisitDate.HasValue) tp.VisitDate = dto.VisitDate.Value;
-            if (dto.Notes != null) tp.Notes = dto.Notes;
-            await _ctx.SaveChangesAsync(); return NoContent();
+            if (await _tripService.UpdatePlaceAsync(UserId(), tripId, tpId, dto)) return NoContent();
+            return NotFound();
         }
 
-        [HttpDelete("{id}/places/{tpId}")]
-        public async Task<IActionResult> RemovePlace(int id, int tpId)
+        /// <summary>
+        /// Remove a place from the trip itinerary.
+        /// </summary>
+        [HttpDelete("{tripId}/places/{tpId}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> RemovePlace(int tripId, int tpId)
         {
-            var t = await _ctx.Trips.FindAsync(id);
-            if (t == null) return NotFound();
-            if (t.UserID != UserId()) return Forbid();
-            var tp = await _ctx.TripPlaces.FindAsync(tpId);
-            if (tp == null || tp.TripID != id) return NotFound();
-            _ctx.TripPlaces.Remove(tp); await _ctx.SaveChangesAsync(); return NoContent();
+            if (await _tripService.RemovePlaceAsync(UserId(), tripId, tpId)) return NoContent();
+            return NotFound();
         }
     }
 }

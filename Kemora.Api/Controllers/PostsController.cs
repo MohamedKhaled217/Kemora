@@ -1,192 +1,103 @@
-using Kemora.Api.DTOs;
-using Kemora.Domain.Entities;
-using Kemora.Infrastructure.Data;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Asp.Versioning;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Kemora.Api.Controllers
 {
-    [Route("api/[controller]")]
+    /// <summary>
+    /// Community posts: create, browse, update, and delete social posts with media.
+    /// </summary>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [Authorize]
     public class PostsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IPostService _postService;
 
-        public PostsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public PostsController(IPostService postService)
         {
-            _context = context;
-            _userManager = userManager;
+            _postService = postService;
         }
 
-        private string GetUserId() =>
-            User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-        // ──────────────────────────────────────────────────────────────────────
-        // CREATE
-        // ──────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Create a new community post.
+        /// </summary>
         [HttpPost]
+        [ProducesResponseType(typeof(PostListResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<PostListResponseDto>> CreatePost([FromBody] CreatePostDto dto)
         {
-            var userId = GetUserId();
-            var user = await _userManager.FindByIdAsync(userId);
-
-            var post = new Post
-            {
-                Content   = dto.Content,
-                CreatedAt = DateTime.UtcNow,
-                UserID    = userId,
-                Media     = dto.Media?.Select(m => new PostMedia
-                {
-                    MediaURL  = m.MediaURL,
-                    MediaType = m.MediaType
-                }).ToList() ?? []
-            };
-
-            _context.Posts.Add(post);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetPost), new { id = post.PostID }, MapToListDto(post, user!));
+            var post = await _postService.CreateAsync(GetUserId(), dto);
+            return Ok(post);
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        // LIST ALL (paginated, newest first)
-        // ──────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Browse all posts with pagination.
+        /// </summary>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<List<PostListResponseDto>>> GetPosts(
+        [ProducesResponseType(typeof(PagedResult<PostListResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<PostListResponseDto>>> GetPosts(
             [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            return Ok(await _context.Posts
-                .Include(p => p.User)
-                .Include(p => p.Media)
-                .Include(p => p.Reactions)
-                .Include(p => p.Comments)
-                .OrderByDescending(p => p.CreatedAt)
-                .Skip((page - 1) * pageSize).Take(pageSize)
-                .Select(p => new PostListResponseDto
-                {
-                    PostID        = p.PostID,
-                    Content       = p.Content,
-                    CreatedAt     = p.CreatedAt,
-                    AuthorId      = p.UserID,
-                    AuthorName    = p.User.FullName,
-                    Media         = p.Media.Select(m => new PostMediaResponseDto
-                        { MediaID = m.MediaID, MediaURL = m.MediaURL, MediaType = m.MediaType }).ToList(),
-                    ReactionCount = p.Reactions.Count,
-                    CommentCount  = p.Comments.Count
-                }).ToListAsync());
+            return Ok(await _postService.GetPostsAsync(page, pageSize));
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        // GET SINGLE (detail with comments)
-        // ──────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Get a single post with full details.
+        /// </summary>
         [HttpGet("{id}")]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(PostDetailResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<PostDetailResponseDto>> GetPost(int id)
         {
-            var p = await _context.Posts
-                .Include(x => x.User)
-                .Include(x => x.Media)
-                .Include(x => x.Reactions)
-                .Include(x => x.Comments).ThenInclude(c => c.User)
-                .Include(x => x.Comments).ThenInclude(c => c.Media)
-                .Include(x => x.Comments).ThenInclude(c => c.Reactions)
-                .FirstOrDefaultAsync(x => x.PostID == id);
-
+            var p = await _postService.GetPostAsync(id);
             if (p == null) return NotFound();
-
-            return Ok(new PostDetailResponseDto
-            {
-                PostID        = p.PostID,
-                Content       = p.Content,
-                CreatedAt     = p.CreatedAt,
-                AuthorId      = p.UserID,
-                AuthorName    = p.User.FullName,
-                Media         = p.Media.Select(m => new PostMediaResponseDto
-                    { MediaID = m.MediaID, MediaURL = m.MediaURL, MediaType = m.MediaType }).ToList(),
-                ReactionCount = p.Reactions.Count,
-                CommentCount  = p.Comments.Count,
-                Comments      = p.Comments.OrderByDescending(c => c.CreatedAt).Select(c => new CommentResponseDto
-                {
-                    CommentID     = c.CommentID,
-                    Content       = c.Content,
-                    CreatedAt     = c.CreatedAt,
-                    AuthorId      = c.UserID,
-                    AuthorName    = c.User.FullName,
-                    Media         = c.Media.Select(m => new CommentMediaResponseDto
-                        { MediaID = m.MediaID, MediaURL = m.MediaURL, MediaType = m.MediaType }).ToList(),
-                    ReactionCount = c.Reactions.Count
-                }).ToList()
-            });
+            return Ok(p);
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        // MY POSTS
-        // ──────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Get the authenticated user's posts.
+        /// </summary>
         [HttpGet("my")]
-        public async Task<ActionResult<List<PostListResponseDto>>> GetMyPosts(
+        [ProducesResponseType(typeof(PagedResult<PostListResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<PostListResponseDto>>> GetMyPosts(
             [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var userId = GetUserId();
-            return Ok(await _context.Posts
-                .Include(p => p.User).Include(p => p.Media)
-                .Include(p => p.Reactions).Include(p => p.Comments)
-                .Where(p => p.UserID == userId)
-                .OrderByDescending(p => p.CreatedAt)
-                .Skip((page - 1) * pageSize).Take(pageSize)
-                .Select(p => new PostListResponseDto
-                {
-                    PostID = p.PostID, Content = p.Content, CreatedAt = p.CreatedAt,
-                    AuthorId = p.UserID, AuthorName = p.User.FullName,
-                    Media = p.Media.Select(m => new PostMediaResponseDto
-                        { MediaID = m.MediaID, MediaURL = m.MediaURL, MediaType = m.MediaType }).ToList(),
-                    ReactionCount = p.Reactions.Count, CommentCount = p.Comments.Count
-                }).ToListAsync());
+            return Ok(await _postService.GetMyPostsAsync(GetUserId(), page, pageSize));
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        // UPDATE
-        // ──────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Update your own post.
+        /// </summary>
         [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdatePost(int id, [FromBody] UpdatePostDto dto)
         {
-            var post = await _context.Posts.FindAsync(id);
-            if (post == null) return NotFound();
-            if (post.UserID != GetUserId()) return Forbid();
-
-            post.Content = dto.Content;
-            await _context.SaveChangesAsync();
-            return NoContent();
+            if (await _postService.UpdatePostAsync(id, GetUserId(), dto))
+                return NoContent();
+            return NotFound("Post not found or unauthorized.");
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        // DELETE
-        // ──────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Delete your own post.
+        /// </summary>
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeletePost(int id)
         {
-            var post = await _context.Posts.Include(p => p.Media).FirstOrDefaultAsync(p => p.PostID == id);
-            if (post == null) return NotFound();
-            if (post.UserID != GetUserId()) return Forbid();
-
-            _context.Posts.Remove(post); // cascades media via EF config
-            await _context.SaveChangesAsync();
-            return NoContent();
+            if (await _postService.DeletePostAsync(id, GetUserId()))
+                return NoContent();
+            return NotFound("Post not found or unauthorized.");
         }
-
-        // ──────────────────────────────────────────────────────────────────────
-        private static PostListResponseDto MapToListDto(Post p, ApplicationUser user) => new()
-        {
-            PostID = p.PostID, Content = p.Content, CreatedAt = p.CreatedAt,
-            AuthorId = p.UserID, AuthorName = user.FullName,
-            Media = (p.Media ?? []).Select(m => new PostMediaResponseDto
-                { MediaID = m.MediaID, MediaURL = m.MediaURL, MediaType = m.MediaType }).ToList(),
-            ReactionCount = 0, CommentCount = 0
-        };
     }
 }

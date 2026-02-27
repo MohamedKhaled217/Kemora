@@ -1,88 +1,84 @@
-using Kemora.Api.DTOs;
-using Kemora.Domain.Entities;
-using Kemora.Infrastructure.Data;
+using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Asp.Versioning;
+using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Kemora.Api.Controllers
 {
-    [Route("api")]
+    /// <summary>
+    /// Gamification endpoints: badges, points, and leaderboard.
+    /// </summary>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}")]
     [ApiController]
     [Authorize]
     public class BadgesController : ControllerBase
     {
-        private readonly ApplicationDbContext _ctx;
-        public BadgesController(ApplicationDbContext ctx) => _ctx = ctx;
+        private readonly IBadgeService _badgeService;
+
+        public BadgesController(IBadgeService badgeService)
+        {
+            _badgeService = badgeService;
+        }
 
         private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+        /// <summary>
+        /// Create a new badge (Admin only).
+        /// </summary>
         [HttpPost("admin/badges")]
+        [ProducesResponseType(typeof(BadgeResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<BadgeResponseDto>> CreateBadge([FromBody] CreateBadgeDto dto)
         {
-            var badge = new Badge { Name = dto.Name, Description = dto.Description, PointsReward = dto.PointsReward };
-            _ctx.Badges.Add(badge);
-            await _ctx.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetAllBadges), null,
-                new BadgeResponseDto { BadgeID = badge.BadgeID, Name = badge.Name, Description = badge.Description, PointsReward = badge.PointsReward });
+            var badge = await _badgeService.CreateBadgeAsync(dto);
+            return Ok(badge);
         }
 
+        /// <summary>
+        /// Get all available badges.
+        /// </summary>
         [HttpGet("badges")]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(List<BadgeResponseDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<List<BadgeResponseDto>>> GetAllBadges()
         {
-            return Ok(await _ctx.Badges.Select(b => new BadgeResponseDto
-            {
-                BadgeID = b.BadgeID, Name = b.Name, Description = b.Description, PointsReward = b.PointsReward
-            }).ToListAsync());
+            return Ok(await _badgeService.GetAllBadgesAsync());
         }
 
-        [HttpGet("badges/my")]
+        /// <summary>
+        /// Get the authenticated user's earned badges.
+        /// </summary>
+        [HttpGet("my/badges")]
+        [ProducesResponseType(typeof(List<UserBadgeResponseDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<List<UserBadgeResponseDto>>> GetMyBadges()
         {
-            var userId = GetUserId();
-            return Ok(await _ctx.UserBadges
-                .Include(ub => ub.Badge)
-                .Where(ub => ub.UserID == userId)
-                .Select(ub => new UserBadgeResponseDto
-                {
-                    BadgeID = ub.BadgeID, BadgeName = ub.Badge.Name,
-                    BadgeDescription = ub.Badge.Description, EarnedAt = ub.EarnedAt
-                }).ToListAsync());
+            return Ok(await _badgeService.GetMyBadgesAsync(GetUserId()));
         }
 
-        [HttpGet("points/my")]
+        /// <summary>
+        /// Get the authenticated user's point summary.
+        /// </summary>
+        [HttpGet("my/points")]
+        [ProducesResponseType(typeof(PointsSummaryDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<PointsSummaryDto>> GetMyPoints()
         {
-            var userId = GetUserId();
-            var user = await _ctx.Users.OfType<ApplicationUser>().FirstAsync(u => u.Id == userId);
-            var history = await _ctx.UserPoints
-                .Include(up => up.SourcePlace)
-                .Where(up => up.UserID == userId)
-                .OrderByDescending(up => up.GainedAt)
-                .Select(up => new PointHistoryDto
-                {
-                    PointsGained = up.PointsGained, GainedAt = up.GainedAt,
-                    SourcePlaceName = up.SourcePlace != null ? up.SourcePlace.Name : null
-                }).ToListAsync();
-
-            return Ok(new PointsSummaryDto { TotalPoints = user.TotalPoints, History = history });
+            return Ok(await _badgeService.GetMyPointsAsync(GetUserId()));
         }
 
+        /// <summary>
+        /// Get the top users by points leaderboard.
+        /// </summary>
+        /// <param name="top">Number of top users to return (default: 10).</param>
         [HttpGet("leaderboard")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<LeaderboardEntryDto>>> GetLeaderboard([FromQuery] int top = 20)
+        [ProducesResponseType(typeof(List<LeaderboardEntryDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<LeaderboardEntryDto>>> GetLeaderboard([FromQuery] int top = 10)
         {
-            var users = await _ctx.Users.OfType<ApplicationUser>()
-                .OrderByDescending(u => u.TotalPoints)
-                .Take(top)
-                .ToListAsync();
-
-            return Ok(users.Select((u, i) => new LeaderboardEntryDto
-            {
-                Rank = i + 1, UserId = u.Id, FullName = u.FullName, TotalPoints = u.TotalPoints
-            }).ToList());
+            return Ok(await _badgeService.GetLeaderboardAsync(top));
         }
     }
 }
