@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,7 +52,23 @@ builder.Services.AddAuthentication(options =>
 
 // 4. Register Services (Dependency Injection)
 builder.Services.AddScoped<ITokenService, TokenService>();
-// builder.Services.AddScoped<IPlaceService, PlaceService>(); // Uncomment when you build PlaceService
+builder.Services.AddScoped<IPlaceService, OverpassPlacesService>();
+
+// Named HttpClient for OpenStreetMap Overpass API (free, no key required)
+builder.Services.AddHttpClient("Overpass", client =>
+{
+    client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+
+// Named HttpClient for local AI model (generous timeout for inference)
+builder.Services.AddHttpClient("LocalAI", client =>
+{
+    client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+    client.Timeout = TimeSpan.FromMinutes(5);
+});
 
 builder.Services.AddControllers(); // We use Controllers, not Minimal APIs
 

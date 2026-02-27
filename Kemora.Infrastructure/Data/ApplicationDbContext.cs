@@ -23,6 +23,7 @@ namespace Kemora.Infrastructure.Data
         public DbSet<PostReaction> PostReactions { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<CommentMedia> CommentMedia { get; set; }
+        public DbSet<CommentReaction> CommentReactions { get; set; }
 
         // Planning
         public DbSet<Trip> Trips { get; set; }
