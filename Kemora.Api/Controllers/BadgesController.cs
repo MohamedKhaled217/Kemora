@@ -31,6 +31,7 @@ namespace Kemora.Api.Controllers
         /// Create a new badge (Admin only).
         /// </summary>
         [HttpPost("admin/badges")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(BadgeResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<BadgeResponseDto>> CreateBadge([FromBody] CreateBadgeDto dto)
         {

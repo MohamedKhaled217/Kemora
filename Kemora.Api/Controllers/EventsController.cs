@@ -25,15 +25,15 @@ namespace Kemora.Api.Controllers
         }
 
         /// <summary>
-        /// Create an event for a specific place.
+        /// Create an event for a specific place (Admin only).
         /// </summary>
         [HttpPost("places/{placeId}/events")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(EventResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<EventResponseDto>> CreateEvent(int placeId, [FromBody] CreateEventDto dto)
         {
-            dto.PlaceID = placeId;
-            var response = await _eventService.CreateEventAsync(dto);
+            var response = await _eventService.CreateEventAsync(placeId, dto);
             if (response == null) return NotFound("Place not found.");
             return Ok(response);
         }
@@ -61,9 +61,10 @@ namespace Kemora.Api.Controllers
         }
 
         /// <summary>
-        /// Update an existing event.
+        /// Update an existing event (Admin only).
         /// </summary>
         [HttpPut("events/{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateEvent(int id, [FromBody] UpdateEventDto dto)
@@ -73,9 +74,10 @@ namespace Kemora.Api.Controllers
         }
 
         /// <summary>
-        /// Delete an event.
+        /// Delete an event (Admin only).
         /// </summary>
         [HttpDelete("events/{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteEvent(int id)

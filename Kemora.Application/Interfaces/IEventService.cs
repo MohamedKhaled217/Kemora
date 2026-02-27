@@ -6,7 +6,7 @@ namespace Kemora.Application.Interfaces
 {
     public interface IEventService
     {
-        Task<EventResponseDto?> CreateEventAsync(CreateEventDto dto);
+        Task<EventResponseDto?> CreateEventAsync(int placeId, CreateEventDto dto);
         Task<List<EventResponseDto>> GetUpcomingEventsAsync();
         Task<List<EventResponseDto>> GetPlaceEventsAsync(int placeId);
         Task<bool> UpdateEventAsync(int id, UpdateEventDto dto);

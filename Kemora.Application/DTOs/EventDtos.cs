@@ -13,9 +13,6 @@ namespace Kemora.Application.DTOs
 
         [Required(ErrorMessage = "End date is required.")]
         public DateTime EndDate { get; set; }
-
-        [Required(ErrorMessage = "Place ID is required.")]
-        public int PlaceID { get; set; }
     }
 
     public class UpdateEventDto

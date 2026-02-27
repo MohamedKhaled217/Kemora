@@ -24,11 +24,11 @@ namespace Kemora.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<EventResponseDto?> CreateEventAsync(CreateEventDto dto)
+        public async Task<EventResponseDto?> CreateEventAsync(int placeId, CreateEventDto dto)
         {
-            if (!await _placeRepo.ExistsAsync(dto.PlaceID)) return null;
+            if (!await _placeRepo.ExistsAsync(placeId)) return null;
 
-            var e = new Event { Name = dto.Name, StartDate = dto.StartDate, EndDate = dto.EndDate, PlaceID = dto.PlaceID };
+            var e = new Event { Name = dto.Name, StartDate = dto.StartDate, EndDate = dto.EndDate, PlaceID = placeId };
             await _eventRepo.AddAsync(e);
             await _unitOfWork.CommitAsync();
             return _mapper.Map<EventResponseDto>(e);
