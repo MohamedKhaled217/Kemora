@@ -14,6 +14,9 @@ using System.Text;
 using System.Net.Http.Headers;
 using System.Threading.RateLimiting;
 using Serilog;
+using dotenv.net;
+
+DotEnv.Load();
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
