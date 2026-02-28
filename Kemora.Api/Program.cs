@@ -34,6 +34,8 @@ builder.Host.UseSerilog();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.Configure<Kemora.Application.DTOs.EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
 // 2. Identity (User Management) Config
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -93,7 +95,7 @@ builder.Services.AddScoped<Kemora.Domain.Interfaces.ITokenService, Kemora.Infras
 builder.Services.AddScoped<Kemora.Domain.Interfaces.IPlaceService, Kemora.Infrastructure.Services.OverpassPlacesService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IAuthService, Kemora.Infrastructure.Services.AuthService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IBadgeService, Kemora.Application.Services.BadgeService>();
-builder.Services.AddScoped<Kemora.Application.Interfaces.IEmailService, Kemora.Infrastructure.Services.LoggerEmailService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IEmailService, Kemora.Infrastructure.Services.SmtpEmailService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IImageService, Kemora.Infrastructure.Services.CloudinaryImageService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.ICommentService, Kemora.Application.Services.CommentService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IEventService, Kemora.Application.Services.EventService>();
