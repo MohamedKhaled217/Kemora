@@ -1,0 +1,28 @@
+﻿  Determining projects to restore...
+E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj : warning NU1510: PackageReference Microsoft.Extensions.Http will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [E:\Kemora\Kemora.sln]
+E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj : warning NU1510: PackageReference Microsoft.Extensions.Configuration.Abstractions will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [E:\Kemora\Kemora.sln]
+  All projects are up-to-date for restore.
+C:\Program Files\dotnet\sdk\10.0.200-preview.0.26103.119\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(383,5): message NETSDK1057: You are using a preview version of .NET. See: https://aka.ms/dotnet-support-policy [E:\Kemora\Kemora.Application\Kemora.Application.csproj]
+C:\Program Files\dotnet\sdk\10.0.200-preview.0.26103.119\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(383,5): message NETSDK1057: You are using a preview version of .NET. See: https://aka.ms/dotnet-support-policy [E:\Kemora\Kemora.Tests\Kemora.Tests.csproj]
+C:\Program Files\dotnet\sdk\10.0.200-preview.0.26103.119\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(383,5): message NETSDK1057: You are using a preview version of .NET. See: https://aka.ms/dotnet-support-policy [E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj]
+E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj : warning NU1510: PackageReference Microsoft.Extensions.Http will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj : warning NU1510: PackageReference Microsoft.Extensions.Configuration.Abstractions will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+C:\Program Files\dotnet\sdk\10.0.200-preview.0.26103.119\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(383,5): message NETSDK1057: You are using a preview version of .NET. See: https://aka.ms/dotnet-support-policy [E:\Kemora\Kemora.Api\Kemora.Api.csproj]
+C:\Program Files\dotnet\sdk\10.0.200-preview.0.26103.119\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(383,5): message NETSDK1057: You are using a preview version of .NET. See: https://aka.ms/dotnet-support-policy [E:\Kemora\Kemora.Domain\Kemora.Domain.csproj]
+  Kemora.Domain -> E:\Kemora\Kemora.Domain\bin\Debug\net10.0\Kemora.Domain.dll
+  Kemora.Application -> E:\Kemora\Kemora.Application\bin\Debug\net10.0\Kemora.Application.dll
+  Kemora.Infrastructure -> E:\Kemora\Kemora.Infrastructure\bin\Debug\net10.0\Kemora.Infrastructure.dll
+  Kemora.Api -> E:\Kemora\Kemora.Api\bin\Debug\net10.0\Kemora.Api.dll
+E:\Kemora\Kemora.Tests\Services\NotificationServiceTests.cs(50,41): error CS1061: 'INotificationRepository' does not contain a definition for 'GetUnreadCountAsync' and no accessible extension method 'GetUnreadCountAsync' accepting a first argument of type 'INotificationRepository' could be found (are you missing a using directive or an assembly reference?) [E:\Kemora\Kemora.Tests\Kemora.Tests.csproj]
+
+Build FAILED.
+
+E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj : warning NU1510: PackageReference Microsoft.Extensions.Http will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [E:\Kemora\Kemora.sln]
+E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj : warning NU1510: PackageReference Microsoft.Extensions.Configuration.Abstractions will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [E:\Kemora\Kemora.sln]
+E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj : warning NU1510: PackageReference Microsoft.Extensions.Http will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+E:\Kemora\Kemora.Infrastructure\Kemora.Infrastructure.csproj : warning NU1510: PackageReference Microsoft.Extensions.Configuration.Abstractions will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+E:\Kemora\Kemora.Tests\Services\NotificationServiceTests.cs(50,41): error CS1061: 'INotificationRepository' does not contain a definition for 'GetUnreadCountAsync' and no accessible extension method 'GetUnreadCountAsync' accepting a first argument of type 'INotificationRepository' could be found (are you missing a using directive or an assembly reference?) [E:\Kemora\Kemora.Tests\Kemora.Tests.csproj]
+    4 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:03.59

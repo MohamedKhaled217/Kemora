@@ -31,24 +31,5 @@ namespace Kemora.Infrastructure.Repositories
                 .FirstOrDefaultAsync(x => x.TripID == id);
         }
 
-        public async Task<TripPlace?> GetTripPlaceAsync(int tripPlaceId)
-        {
-            return await _ctx.TripPlaces.FindAsync(tripPlaceId);
-        }
-
-        public async Task AddTripPlaceAsync(TripPlace tripPlace)
-        {
-            await _ctx.TripPlaces.AddAsync(tripPlace);
-        }
-
-        public void RemoveTripPlace(TripPlace tripPlace)
-        {
-            _ctx.TripPlaces.Remove(tripPlace);
-        }
-        
-        public async Task<bool> TripPlaceExistsAsync(int tripId, int placeId)
-        {
-            return await _ctx.TripPlaces.AnyAsync(tp => tp.TripID == tripId && tp.PlaceID == placeId);
-        }
     }
 }

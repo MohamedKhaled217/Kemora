@@ -13,6 +13,8 @@ namespace Kemora.Application.DTOs
     {
         public string UserId { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public string? ProfilePictureUrl { get; set; }
+        public string Country { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public int TotalPoints { get; set; }
         public int PostCount { get; set; }
@@ -25,6 +27,8 @@ namespace Kemora.Application.DTOs
     {
         public string UserId { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public string? ProfilePictureUrl { get; set; }
+        public string Country { get; set; } = string.Empty;
         public int TotalPoints { get; set; }
         public int BadgeCount { get; set; }
         public int PostCount { get; set; }

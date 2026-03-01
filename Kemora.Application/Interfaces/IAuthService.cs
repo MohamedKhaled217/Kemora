@@ -6,6 +6,7 @@ namespace Kemora.Application.Interfaces
     {
         Task<(bool Succeeded, string Error, AuthResponseDto Data)> RegisterAsync(RegisterDto model);
         Task<(bool Succeeded, string Error, AuthResponseDto Data)> LoginAsync(LoginDto model);
+        Task<(bool Succeeded, string Error, AuthResponseDto Data)> GoogleLoginAsync(string idToken);
         Task<(bool Succeeded, string Error, AuthResponseDto Data)> RefreshTokenAsync(RefreshTokenRequestDto model);
         Task<(bool Succeeded, string Error)> ConfirmEmailAsync(string userId, string token);
         Task<(bool Succeeded, string Error)> ForgotPasswordAsync(string email);

@@ -12,14 +12,16 @@ namespace Kemora.Application.Services
     {
         private readonly ITripRepository _tripRepo;
         private readonly IPlaceRepository _placeRepo;
+        private readonly IRepository<TripPlace> _tripPlaceRepo;
         private readonly IMapper _mapper;
 
         private readonly IUnitOfWork _unitOfWork;
 
-        public TripService(ITripRepository tripRepo, IPlaceRepository placeRepo, IMapper mapper, IUnitOfWork unitOfWork)
+        public TripService(ITripRepository tripRepo, IPlaceRepository placeRepo, IRepository<TripPlace> tripPlaceRepo, IMapper mapper, IUnitOfWork unitOfWork)
         {
             _tripRepo = tripRepo;
             _placeRepo = placeRepo;
+            _tripPlaceRepo = tripPlaceRepo;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
         }
@@ -87,10 +89,10 @@ namespace Kemora.Application.Services
             var place = await _placeRepo.GetByIdAsync(dto.PlaceID);
             if (place == null) return null;
 
-            if (await _tripRepo.TripPlaceExistsAsync(tripId, dto.PlaceID)) return null;
+            if (await _tripPlaceRepo.AnyAsync(tp => tp.TripID == tripId && tp.PlaceID == dto.PlaceID)) return null;
 
             var tp = new TripPlace { TripID = tripId, PlaceID = dto.PlaceID, VisitDate = dto.VisitDate, Notes = dto.Notes };
-            await _tripRepo.AddTripPlaceAsync(tp);
+            await _tripPlaceRepo.AddAsync(tp);
             await _unitOfWork.CommitAsync();
 
             var resp = _mapper.Map<TripPlaceResponseDto>(tp);
@@ -103,7 +105,7 @@ namespace Kemora.Application.Services
             var trip = await _tripRepo.GetByIdAsync(tripId);
             if (trip == null || trip.UserID != userId) return false;
 
-            var tp = await _tripRepo.GetTripPlaceAsync(tpId);
+            var tp = await _tripPlaceRepo.GetByIdAsync(tpId);
             if (tp == null || tp.TripID != tripId) return false;
 
             if (dto.VisitDate.HasValue) tp.VisitDate = dto.VisitDate.Value;
@@ -117,10 +119,10 @@ namespace Kemora.Application.Services
             var trip = await _tripRepo.GetByIdAsync(tripId);
             if (trip == null || trip.UserID != userId) return false;
 
-            var tp = await _tripRepo.GetTripPlaceAsync(tpId);
+            var tp = await _tripPlaceRepo.GetByIdAsync(tpId);
             if (tp == null || tp.TripID != tripId) return false;
 
-            _tripRepo.RemoveTripPlace(tp);
+            _tripPlaceRepo.Remove(tp);
             await _unitOfWork.CommitAsync();
             return true;
         }

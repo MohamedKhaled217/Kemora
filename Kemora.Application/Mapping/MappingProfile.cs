@@ -1,5 +1,6 @@
 using AutoMapper;
 using Kemora.Application.DTOs;
+using Kemora.Application.Interfaces;
 using Kemora.Domain.Entities;
 using System.Linq;
 
@@ -9,11 +10,23 @@ namespace Kemora.Application.Mapping
     {
         public MappingProfile()
         {
+            CreateMap<ApplicationUser, AuthResponseDto>()
+                .ForMember(d => d.UserId, o => o.MapFrom(s => s.Id));
+            CreateMap<ApplicationUser, ProfileDto>()
+                .ForMember(d => d.Id, o => o.MapFrom(s => s.Id));
+            CreateMap<ApplicationUser, PublicProfileDto>()
+                .ForMember(d => d.UserId, o => o.MapFrom(s => s.Id));
+
             // Gamification
             CreateMap<Badge, BadgeResponseDto>();
             CreateMap<UserBadge, UserBadgeResponseDto>()
                 .ForMember(d => d.BadgeName, o => o.MapFrom(s => s.Badge.Name))
                 .ForMember(d => d.BadgeDescription, o => o.MapFrom(s => s.Badge.Description));
+            CreateMap<UserPoint, PointHistoryDto>()
+                .ForMember(d => d.SourcePlaceName, o => o.MapFrom(s => s.SourcePlace.Name));
+            CreateMap<ApplicationUser, LeaderboardEntryDto>()
+                .ForMember(d => d.UserId, o => o.MapFrom(s => s.Id))
+                .ForMember(d => d.Rank, o => o.Ignore());
             
             // Favorites
             CreateMap<UserFavorite, FavoriteResponseDto>()
@@ -53,6 +66,9 @@ namespace Kemora.Application.Mapping
 
             // Reviews
             CreateMap<Review, ReviewResponseDto>();
+
+            // Notifications
+            CreateMap<Notification, NotificationDto>();
 
             // Photos
             CreateMap<Photo, PhotoResponseDto>();

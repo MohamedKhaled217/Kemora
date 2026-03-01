@@ -46,8 +46,8 @@ namespace Kemora.Application.Services
 
         public async Task<PagedResult<PostListResponseDto>> GetPostsAsync(int page, int pageSize)
         {
-            var posts = await _postRepo.GetPagedAsync(page, pageSize);
-            var count = await _postRepo.GetCountAsync();
+            var posts = await _postRepo.GetPagedAsync(null, q => q.OrderByDescending(p => p.CreatedAt), page, pageSize, p => p.User, p => p.Media, p => p.Reactions, p => p.Comments);
+            var count = await _postRepo.CountAsync();
             return new PagedResult<PostListResponseDto>
             {
                 Items = _mapper.Map<List<PostListResponseDto>>(posts),
@@ -66,8 +66,8 @@ namespace Kemora.Application.Services
 
         public async Task<PagedResult<PostListResponseDto>> GetMyPostsAsync(string userId, int page, int pageSize)
         {
-            var posts = await _postRepo.GetByUserIdAsync(userId, page, pageSize);
-            var count = await _postRepo.GetCountByUserIdAsync(userId);
+            var posts = await _postRepo.GetPagedAsync(p => p.UserID == userId, q => q.OrderByDescending(p => p.CreatedAt), page, pageSize, p => p.User, p => p.Media, p => p.Reactions, p => p.Comments);
+            var count = await _postRepo.CountAsync(p => p.UserID == userId);
             return new PagedResult<PostListResponseDto>
             {
                 Items = _mapper.Map<List<PostListResponseDto>>(posts),

@@ -26,20 +26,4 @@ namespace Kemora.Domain.Entities
         public DateTime VisitDate { get; set; }
         public string? Notes { get; set; }
     }
-
-    // --- AI CACHING LAYERS ---
-    public class TripTemplate
-    {
-        public int Id { get; set; }
-        public string Signature { get; set; } // "Cairo_3Days_Budget"
-        public ICollection<TripTemplateItem> Items { get; set; }
-    }
-
-    public class TripTemplateItem
-    {
-        public int Id { get; set; }
-        public int TripTemplateId { get; set; }
-        public int PlaceId { get; set; }
-        public int DayNumber { get; set; }
-    }
 }

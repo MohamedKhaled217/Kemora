@@ -12,6 +12,10 @@ namespace Kemora.Application.DTOs
         [EmailAddress(ErrorMessage = "Invalid email address format.")]
         public string Email { get; set; }
 
+        [Required(ErrorMessage = "Country or region is required.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Country must be between 2 and 100 characters.")]
+        public string Country { get; set; }
+
         [Required(ErrorMessage = "Password is required.")]
         [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters long.")]
         public string Password { get; set; }
@@ -31,6 +35,8 @@ namespace Kemora.Application.DTOs
     {
         public string UserId { get; set; }
         public string FullName { get; set; }
+        public string? ProfilePictureUrl { get; set; }
+        public string Country { get; set; }
         public string Email { get; set; }
         public string Token { get; set; }
         public string RefreshToken { get; set; }

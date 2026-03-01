@@ -4,7 +4,9 @@ using Kemora.Domain.Entities;
 using Kemora.Domain.Interfaces;
 using Kemora.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
+using AutoMapper;
 using System.Security.Claims;
+using Google.Apis.Auth;
 
 namespace Kemora.Infrastructure.Services
 {
@@ -15,19 +17,22 @@ namespace Kemora.Infrastructure.Services
         private readonly ITokenService _tokenService;
         private readonly ApplicationDbContext _context;
         private readonly IEmailService _emailService;
+        private readonly IMapper _mapper;
 
         public AuthService(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             ITokenService tokenService,
             ApplicationDbContext context,
-            IEmailService emailService)
+            IEmailService emailService,
+            IMapper mapper)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
             _context = context;
             _emailService = emailService;
+            _mapper = mapper;
         }
 
         public async Task<(bool Succeeded, string Error, AuthResponseDto Data)> RegisterAsync(RegisterDto model)
@@ -43,6 +48,7 @@ namespace Kemora.Infrastructure.Services
                     UserName = model.Email,
                     Email = model.Email,
                     FullName = model.FullName,
+                    Country = model.Country,
                     TotalPoints = 50
                 };
 
@@ -72,14 +78,10 @@ namespace Kemora.Infrastructure.Services
                 var token = await _tokenService.CreateTokenAsync(user);
                 await transaction.CommitAsync();
 
-                return (true, null, new AuthResponseDto
-                {
-                    UserId = user.Id,
-                    Email = user.Email,
-                    FullName = user.FullName,
-                    Token = token,
-                    RefreshToken = user.RefreshToken
-                });
+                var response = _mapper.Map<AuthResponseDto>(user);
+                response.Token = token;
+
+                return (true, null, response);
             }
             catch (Exception ex)
             {
@@ -102,14 +104,66 @@ namespace Kemora.Infrastructure.Services
 
             var token = await _tokenService.CreateTokenAsync(user);
 
-            return (true, null, new AuthResponseDto
+            var response = _mapper.Map<AuthResponseDto>(user);
+            response.Token = token;
+
+            return (true, null, response);
+        }
+
+        public async Task<(bool Succeeded, string Error, AuthResponseDto Data)> GoogleLoginAsync(string idToken)
+        {
+            try
             {
-                UserId = user.Id,
-                Email = user.Email,
-                FullName = user.FullName,
-                Token = token,
-                RefreshToken = user.RefreshToken
-            });
+                var settings = new GoogleJsonWebSignature.ValidationSettings();
+                var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
+                if (payload == null)
+                    return (false, "Invalid Google token.", null);
+
+                var user = await _userManager.FindByEmailAsync(payload.Email);
+                if (user == null)
+                {
+                    user = new ApplicationUser
+                    {
+                        UserName = payload.Email,
+                        Email = payload.Email,
+                        FullName = payload.Name,
+                        EmailConfirmed = payload.EmailVerified,
+                        TotalPoints = 50
+                    };
+
+                    var result = await _userManager.CreateAsync(user);
+                    if (!result.Succeeded)
+                        return (false, string.Join(", ", result.Errors.Select(e => e.Description)), null);
+
+                    var admins = await _userManager.GetUsersInRoleAsync("Admin");
+                    if (admins.Count == 0)
+                    {
+                        await _userManager.AddToRoleAsync(user, "Admin");
+                    }
+                    else
+                    {
+                        await _userManager.AddToRoleAsync(user, "User");
+                    }
+                }
+
+                user.RefreshToken = _tokenService.GenerateRefreshToken();
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+                await _userManager.UpdateAsync(user);
+
+                var token = await _tokenService.CreateTokenAsync(user);
+                var response = _mapper.Map<AuthResponseDto>(user);
+                response.Token = token;
+
+                return (true, null, response);
+            }
+            catch (InvalidJwtException)
+            {
+                return (false, "Invalid Google token.", null);
+            }
+            catch (Exception ex)
+            {
+                return (false, "Google login failed: " + ex.Message, null);
+            }
         }
 
         public async Task<(bool Succeeded, string Error, AuthResponseDto Data)> RefreshTokenAsync(RefreshTokenRequestDto model)
@@ -123,14 +177,10 @@ namespace Kemora.Infrastructure.Services
             await _userManager.UpdateAsync(user);
 
             var newToken = await _tokenService.CreateTokenAsync(user);
-            return (true, null, new AuthResponseDto
-            {
-                UserId = user.Id,
-                Email = user.Email,
-                FullName = user.FullName,
-                Token = newToken,
-                RefreshToken = user.RefreshToken
-            });
+            var response = _mapper.Map<AuthResponseDto>(user);
+            response.Token = newToken;
+
+            return (true, null, response);
         }
 
         public async Task<(bool Succeeded, string Error)> ConfirmEmailAsync(string userId, string token)

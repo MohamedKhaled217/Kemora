@@ -105,13 +105,13 @@ namespace Kemora.Application.Services
             await _typeRepo.AddAsync(pt);
             await _unitOfWork.CommitAsync();
             
-            var created = await _placeRepo.GetPlaceTypeAsync(pt.TypeID);
+            var created = await _typeRepo.GetByIdAsync(pt.TypeID);
             return _mapper.Map<PlaceTypeDto>(created);
         }
 
         public async Task<List<PlaceTypeDto>> GetPlaceTypesAsync()
         {
-            var pts = await _placeRepo.GetAllPlaceTypesAsync();
+            var pts = await _typeRepo.GetAllAsync(pt => pt.Category);
             return _mapper.Map<List<PlaceTypeDto>>(pts);
         }
 

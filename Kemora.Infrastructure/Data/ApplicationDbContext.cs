@@ -28,8 +28,6 @@ namespace Kemora.Infrastructure.Data
         // Planning
         public DbSet<Trip> Trips { get; set; }
         public DbSet<TripPlace> TripPlaces { get; set; }
-        public DbSet<TripTemplate> TripTemplates { get; set; }
-        public DbSet<TripTemplateItem> TripTemplateItems { get; set; }
 
         // Gamification
         public DbSet<Badge> Badges { get; set; }

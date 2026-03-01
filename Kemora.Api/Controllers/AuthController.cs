@@ -55,6 +55,25 @@ namespace Kemora.Api.Controllers
         }
 
         /// <summary>
+        /// Login using Google OAuth token.
+        /// </summary>
+        /// <param name="model">External login details including the provider and ID token.</param>
+        /// <returns>JWT access token and refresh token.</returns>
+        [HttpPost("google-login")]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GoogleLogin([FromBody] ExternalLoginDto model)
+        {
+            if (model.Provider?.ToUpper() != "GOOGLE")
+                return BadRequest("Unsupported provider");
+
+            var (succeeded, error, data) = await _authService.GoogleLoginAsync(model.IdToken);
+            if (!succeeded) return Unauthorized(error);
+            return Ok(data);
+        }
+
+        /// <summary>
         /// Refresh an expired JWT token using a valid refresh token.
         /// </summary>
         [HttpPost("refresh")]

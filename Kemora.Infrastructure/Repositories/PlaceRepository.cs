@@ -50,14 +50,5 @@ namespace Kemora.Infrastructure.Repositories
                 .FirstOrDefaultAsync(p => p.PlaceID == id);
         }
 
-        public async Task<List<Governorate>> GetAllGovernoratesAsync() => await _ctx.Governorates.ToListAsync();
-        public async Task<List<Category>> GetAllCategoriesAsync() => await _ctx.Categories.ToListAsync();
-        public async Task<List<PlaceType>> GetAllPlaceTypesAsync() => await _ctx.PlaceTypes.Include(pt => pt.Category).ToListAsync();
-
-        public async Task<bool> PlaceExistsAsync(int id) => await _dbSet.AnyAsync(p => p.PlaceID == id);
-        
-        public async Task<PlaceType?> GetPlaceTypeAsync(int id) => await _ctx.PlaceTypes.FindAsync(id);
-        public async Task<Category?> GetCategoryAsync(int id) => await _ctx.Categories.FindAsync(id);
-        public async Task<Governorate?> GetGovernorateAsync(int id) => await _ctx.Governorates.FindAsync(id);
     }
 }

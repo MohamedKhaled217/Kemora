@@ -13,11 +13,11 @@ namespace Kemora.Infrastructure.Services
 
         public CloudinaryImageService(IConfiguration config)
         {
-            var acc = new Account(
-                config["Cloudinary:CloudName"] ?? "dddhzbrqy",
-                config["Cloudinary:ApiKey"] ?? "269465313852975",
-                config["Cloudinary:ApiSecret"] ?? "J9XF2lHIpe4IYwY6HjGt_5kedJ8"
-            );
+            var cloudName = config["Cloudinary:CloudName"] ?? throw new ArgumentNullException("Cloudinary:CloudName is missing from configuration");
+            var apiKey = config["Cloudinary:ApiKey"] ?? throw new ArgumentNullException("Cloudinary:ApiKey is missing from configuration");
+            var apiSecret = config["Cloudinary:ApiSecret"] ?? throw new ArgumentNullException("Cloudinary:ApiSecret is missing from configuration");
+
+            var acc = new Account(cloudName, apiKey, apiSecret);
             _cloudinary = new Cloudinary(acc);
         }
 
