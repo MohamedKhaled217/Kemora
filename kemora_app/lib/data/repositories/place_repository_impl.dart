@@ -34,6 +34,42 @@ class PlaceRepositoryImpl implements IPlaceRepository {
   }
 
   @override
+  Future<Either<Failure, List<Place>>> getTopPlaces() async {
+    try {
+      final places = await remoteDataSource.getTopPlaces();
+      return Right(places);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Governorate>>> getGovernorates() async {
+    try {
+      final governorates = await remoteDataSource.getGovernorates();
+      return Right(governorates);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Place>>> getPlacesByGovernorate(String governorateId) async {
+    try {
+      final places = await remoteDataSource.getPlacesByGovernorate(governorateId);
+      return Right(places);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Place>> getPlaceDetails(String id) async {
     try {
       final place = await remoteDataSource.getPlaceDetails(id);
@@ -41,7 +77,7 @@ class PlaceRepositoryImpl implements IPlaceRepository {
     } on Failure catch (e) {
       return Left(e);
     } catch (e) {
-      return const Left(ServerFailure('Unexpected Error'));
+      return Left(ServerFailure(e.toString()));
     }
   }
 }

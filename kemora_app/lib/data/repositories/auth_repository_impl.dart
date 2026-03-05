@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../core/error/failures.dart';
 import '../../domain/entities/user.dart';
+import '../../domain/entities/user_preferences.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
 
@@ -34,6 +35,30 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
+  Future<Either<Failure, User>> googleLogin(String idToken) async {
+    try {
+      final user = await remoteDataSource.googleLogin(idToken);
+      return Right(user);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure('Connection Error: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> updatePreferences(UserPreferences preferences) async {
+    try {
+      final user = await remoteDataSource.updatePreferences(preferences);
+      return Right(user);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure('Connection Error: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> logout() async {
     // Implement token clearing logic here
     return const Right(null);
@@ -43,5 +68,29 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<Either<Failure, User>> getCurrentUser() async {
     // Implement local cache fetch or /api/auth/me logic
     return const Left(CacheFailure('No cached user found'));
+  }
+
+  @override
+  Future<Either<Failure, void>> changePassword(String currentPassword, String newPassword) async {
+    try {
+      await remoteDataSource.changePassword(currentPassword, newPassword);
+      return const Right(null);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure('Connection Error: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> changeEmail(String newEmail, String password) async {
+    try {
+      await remoteDataSource.changeEmail(newEmail, password);
+      return const Right(null);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure('Connection Error: ${e.toString()}'));
+    }
   }
 }

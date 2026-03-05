@@ -10,6 +10,7 @@ import 'presentation/viewmodels/badge_view_model.dart';
 import 'presentation/viewmodels/places_view_model.dart';
 import 'presentation/viewmodels/post_view_model.dart';
 import 'presentation/viewmodels/trip_view_model.dart';
+import 'presentation/viewmodels/chat_view_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,7 @@ class KemoraApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => di.sl<TripViewModel>()),
         ChangeNotifierProvider(create: (context) => di.sl<PostViewModel>()),
         ChangeNotifierProvider(create: (context) => di.sl<BadgeViewModel>()),
+        ChangeNotifierProvider(create: (context) => di.sl<ChatViewModel>()),
       ],
       child: MaterialApp(
         title: 'Kemora Travel Guide',

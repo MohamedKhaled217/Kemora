@@ -12,12 +12,13 @@ namespace Kemora.Infrastructure.Repositories
     {
         public PlaceRepository(ApplicationDbContext ctx) : base(ctx) { }
 
-        public async Task<IEnumerable<Place>> GetFilteredAsync(string? query, int? governorateId, int? categoryId, int page, int size)
+        public async Task<IEnumerable<Place>> GetFilteredAsync(string? query, int? governorateId, int? categoryId, string? categoryName, int page, int size)
         {
             var sq = _dbSet.AsQueryable();
 
             if (governorateId.HasValue) sq = sq.Where(p => p.GovernorateID == governorateId.Value);
             if (categoryId.HasValue) sq = sq.Where(p => p.PlaceType.CategoryID == categoryId.Value);
+            if (!string.IsNullOrWhiteSpace(categoryName)) sq = sq.Where(p => p.PlaceType.Category.Name == categoryName);
             if (!string.IsNullOrWhiteSpace(query)) sq = sq.Where(p => p.Name.Contains(query) || p.Description.Contains(query));
 
             return await sq
@@ -28,12 +29,13 @@ namespace Kemora.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<int> GetFilteredCountAsync(string? query, int? governorateId, int? categoryId)
+        public async Task<int> GetFilteredCountAsync(string? query, int? governorateId, int? categoryId, string? categoryName)
         {
             var sq = _dbSet.AsQueryable();
 
             if (governorateId.HasValue) sq = sq.Where(p => p.GovernorateID == governorateId.Value);
             if (categoryId.HasValue) sq = sq.Where(p => p.PlaceType.CategoryID == categoryId.Value);
+            if (!string.IsNullOrWhiteSpace(categoryName)) sq = sq.Where(p => p.PlaceType.Category.Name == categoryName);
             if (!string.IsNullOrWhiteSpace(query)) sq = sq.Where(p => p.Name.Contains(query) || p.Description.Contains(query));
 
             return await sq.CountAsync();
@@ -50,5 +52,14 @@ namespace Kemora.Infrastructure.Repositories
                 .FirstOrDefaultAsync(p => p.PlaceID == id);
         }
 
+        public async Task<IEnumerable<Place>> GetTopPlacesAsync(int count = 20)
+        {
+            return await _dbSet
+                .Include(p => p.Governorate)
+                .Include(p => p.PlaceType)
+                .OrderByDescending(p => p.Rating)
+                .Take(count)
+                .ToListAsync();
+        }
     }
 }

@@ -3,9 +3,9 @@ import '../explore/places_screen.dart';
 import '../trip/trip_planner_screen.dart';
 import '../social/feed_screen.dart';
 import '../badges/badges_screen.dart';
+import '../../../screens/profile/profile_screen.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_view_model.dart';
-import '../auth/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,11 +29,13 @@ class _HomeScreenState extends State<HomeScreen> {
       const TripPlannerScreen(),
       const FeedScreen(),
       BadgesScreen(userId: userId),
+      const ProfileScreen(),
     ];
 
     return Scaffold(
       body: screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed, // Needed for > 3 items
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -60,6 +62,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.military_tech_outlined),
             activeIcon: Icon(Icons.military_tech),
             label: 'Badges',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),

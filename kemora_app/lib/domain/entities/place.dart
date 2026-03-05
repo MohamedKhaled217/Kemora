@@ -33,3 +33,20 @@ class Place extends Equatable {
         rating,
       ];
 }
+
+class Governorate extends Equatable {
+  final String id;
+  final String name;
+  final String? imageUrl;
+  final String? region;
+
+  const Governorate({
+    required this.id,
+    required this.name,
+    this.imageUrl,
+    this.region,
+  });
+
+  @override
+  List<Object?> get props => [id, name, imageUrl, region];
+}

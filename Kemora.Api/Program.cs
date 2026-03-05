@@ -98,6 +98,8 @@ builder.Services.AddScoped<Kemora.Domain.Interfaces.ITokenService, Kemora.Infras
 builder.Services.AddScoped<Kemora.Domain.Interfaces.IPlaceService, Kemora.Infrastructure.Services.OverpassPlacesService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IAuthService, Kemora.Infrastructure.Services.AuthService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IBadgeService, Kemora.Application.Services.BadgeService>();
+builder.Services.AddScoped<Kemora.Application.Interfaces.IChatService, Kemora.Application.Services.ChatService>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IWikipediaService, Kemora.Infrastructure.Services.WikipediaService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IEmailService, Kemora.Infrastructure.Services.SmtpEmailService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IImageService, Kemora.Infrastructure.Services.CloudinaryImageService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.ICommentService, Kemora.Application.Services.CommentService>();
@@ -281,7 +283,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Skip HTTPS redirection in development so Flutter Web (Chrome) can call HTTP port 5299
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowFrontend");
 

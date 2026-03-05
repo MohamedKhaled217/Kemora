@@ -40,10 +40,11 @@ namespace Kemora.Api.Controllers
         public async Task<ActionResult<PagedResult<PlacePublicDto>>> GetPlaces(
             [FromQuery] int? governorateId,
             [FromQuery] int? categoryId,
+            [FromQuery] string? categoryName,
             [FromQuery] string? search,
             [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            return Ok(await _placeService.GetPlacesAsync(governorateId, categoryId, search, page, pageSize));
+            return Ok(await _placeService.GetPlacesAsync(governorateId, categoryId, categoryName, search, page, pageSize));
         }
 
         /// <summary>
@@ -74,6 +75,41 @@ namespace Kemora.Api.Controllers
         {
             var result = await _tripPlannerService.GenerateTripPlanAsync(request);
             if (result == null) return BadRequest("Could not generate trip plan.");
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get all governorates in Egypt.
+        /// </summary>
+        [HttpGet("governorates")]
+        [AllowAnonymous]
+        [ResponseCache(Duration = 3600)]
+        public async Task<ActionResult<List<GovernorateDto>>> GetGovernorates()
+        {
+            return Ok(await _placeService.GetGovernoratesAsync());
+        }
+
+        /// <summary>
+        /// Get the top 20 featured places across Egypt.
+        /// </summary>
+        [HttpGet("top")]
+        [AllowAnonymous]
+        [ResponseCache(Duration = 1800)]
+        public async Task<ActionResult<List<PlacePublicDto>>> GetTopPlaces()
+        {
+            return Ok(await _placeService.GetTopPlacesAsync());
+        }
+
+        /// <summary>
+        /// Request an alternative for a specific place in a trip plan.
+        /// </summary>
+        /// <param name="currentPlaceName">The name of the place to swap.</param>
+        /// <param name="preferences">User's preferences.</param>
+        [HttpGet("swap")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SwapPlace([FromQuery] string currentPlaceName, [FromQuery] string preferences)
+        {
+            var result = await _tripPlannerService.SwapPlaceAsync(currentPlaceName, preferences);
             return Ok(result);
         }
     }

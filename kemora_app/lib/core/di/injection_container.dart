@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
+import '../auth/token_storage.dart';
 
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/datasources/places_remote_data_source.dart';
@@ -18,15 +19,28 @@ import '../../domain/repositories/i_post_repository.dart';
 import '../../domain/repositories/i_badge_repository.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
+import '../../domain/usecases/google_login_usecase.dart';
+import '../../domain/usecases/update_preferences_usecase.dart';
+import '../../domain/usecases/change_password_usecase.dart';
+import '../../domain/usecases/change_email_usecase.dart';
 import '../../domain/usecases/get_places_usecase.dart';
-import '../../domain/usecases/get_places_by_category_usecase.dart';
+import '../../domain/usecases/explore_usecases.dart';
 import '../../domain/usecases/trip_usecases.dart';
+import '../../domain/usecases/generate_ai_itinerary_usecase.dart';
+import '../../domain/usecases/swap_place_usecase.dart';
+import '../../domain/usecases/save_ai_plan_usecase.dart';
+import '../../domain/usecases/get_places_by_category_usecase.dart';
 import '../../domain/usecases/post_usecases.dart';
 import '../../domain/usecases/badge_usecases.dart';
 import '../../presentation/viewmodels/auth_view_model.dart';
 import '../../presentation/viewmodels/places_view_model.dart';
 import '../../presentation/viewmodels/trip_view_model.dart';
+import '../../domain/usecases/chat_usecases.dart';
+import '../../presentation/viewmodels/chat_view_model.dart';
 import '../../presentation/viewmodels/post_view_model.dart';
+import '../../data/datasources/chat_remote_data_source.dart';
+import '../../domain/repositories/i_chat_repository.dart';
+import '../../data/repositories/chat_repository_impl.dart';
 import '../../presentation/viewmodels/badge_view_model.dart';
 
 final sl = GetIt.instance;
@@ -34,11 +48,22 @@ final sl = GetIt.instance;
 Future<void> init() async {
   // Features - Auth
   // ViewModels
-  sl.registerFactory(() => AuthViewModel(loginUseCase: sl(), registerUseCase: sl()));
+  sl.registerFactory(() => AuthViewModel(
+        loginUseCase: sl(),
+        registerUseCase: sl(),
+        googleLoginUseCase: sl(),
+        updatePreferencesUseCase: sl(),
+        changePasswordUseCase: sl(),
+        changeEmailUseCase: sl(),
+      ));
 
   // Use Cases
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
+  sl.registerLazySingleton(() => GoogleLoginUseCase(repository: sl()));
+  sl.registerLazySingleton(() => UpdatePreferencesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton(() => ChangeEmailUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<IAuthRepository>(
@@ -55,11 +80,17 @@ Future<void> init() async {
   sl.registerFactory(() => PlacesViewModel(
         getPlacesUseCase: sl(),
         getPlacesByCategoryUseCase: sl(),
+        getTopPlacesUseCase: sl(),
+        getGovernoratesUseCase: sl(),
+        getPlacesByGovernorateUseCase: sl(),
       ));
 
   // Use Cases
   sl.registerLazySingleton(() => GetPlacesUseCase(sl()));
   sl.registerLazySingleton(() => GetPlacesByCategoryUseCase(sl()));
+  sl.registerLazySingleton(() => GetTopPlacesUseCase(sl()));
+  sl.registerLazySingleton(() => GetGovernoratesUseCase(sl()));
+  sl.registerLazySingleton(() => GetPlacesByGovernorateUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<IPlaceRepository>(
@@ -76,11 +107,17 @@ Future<void> init() async {
   sl.registerFactory(() => TripViewModel(
         getUserTripsUseCase: sl(),
         createTripPlanUseCase: sl(),
+        generateAiItineraryUseCase: sl(),
+        swapPlaceUseCase: sl(),
+        saveAiPlanUseCase: sl(),
       ));
 
   // Use Cases
   sl.registerLazySingleton(() => GetUserTripsUseCase(sl()));
   sl.registerLazySingleton(() => CreateTripPlanUseCase(sl()));
+  sl.registerLazySingleton(() => GenerateAiItineraryUseCase(repository: sl()));
+  sl.registerLazySingleton(() => SwapPlaceUseCase(repository: sl()));
+  sl.registerLazySingleton(() => SaveAiPlanUseCase(repository: sl()));
 
   // Repository
   sl.registerLazySingleton<ITripRepository>(
@@ -99,21 +136,42 @@ Future<void> init() async {
   sl.registerFactory(() => PostViewModel(
         getFeedUseCase: sl(),
         createPostUseCase: sl(),
+        toggleLikeUseCase: sl(),
+        addCommentUseCase: sl(),
+        getPostCommentsUseCase: sl(),
+      ));
+  sl.registerFactory(() => ChatViewModel(
+        getConversationsUseCase: sl(),
+        getConversationMessagesUseCase: sl(),
+        sendChatMessageUseCase: sl(),
+        markChatAsReadUseCase: sl(),
       ));
 
   // Use Cases
   sl.registerLazySingleton(() => GetFeedUseCase(sl()));
   sl.registerLazySingleton(() => CreatePostUseCase(sl()));
+  sl.registerLazySingleton(() => ToggleLikeUseCase(sl()));
+  sl.registerLazySingleton(() => AddCommentUseCase(sl()));
+  sl.registerLazySingleton(() => GetPostCommentsUseCase(sl()));
+  
+  sl.registerLazySingleton(() => GetConversationsUseCase(sl()));
+  sl.registerLazySingleton(() => GetConversationMessagesUseCase(sl()));
+  sl.registerLazySingleton(() => SendChatMessageUseCase(sl()));
+  sl.registerLazySingleton(() => MarkChatAsReadUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<IPostRepository>(
-    () => PostRepositoryImpl(remoteDataSource: sl()),
-  );
+      () => PostRepositoryImpl(remoteDataSource: sl()));
+  sl.registerLazySingleton<IChatRepository>(
+      () => ChatRepositoryImpl(remoteDataSource: sl()));
+  
 
   // Data sources
   sl.registerLazySingleton<PostRemoteDataSource>(
-    () => PostRemoteDataSourceImpl(dio: sl()),
-  );
+      () => PostRemoteDataSourceImpl(dio: sl()));
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+      () => ChatRemoteDataSourceImpl(dio: sl()));
+  
 
   // Features - Badges (Gamification)
   // ViewModels
@@ -136,28 +194,38 @@ Future<void> init() async {
     () => BadgeRemoteDataSourceImpl(dio: sl()),
   );
 
-  // Core
-  // TODO: Add Token Interceptor
+  // Core - Dio HTTP Client with Auth Interceptor
   sl.registerLazySingleton(() {
     final dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:5299', // Updated for Windows Desktop testing
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        baseUrl: 'http://localhost:5299', // HTTP for Chrome Web (avoids self-signed cert issues); HTTPS 7210 for production
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
         headers: {'Content-Type': 'application/json'},
       ),
     );
-    
-    // Add logging interceptor for easier debugging
+
+    // JWT Auth Interceptor — attaches Bearer token to every request
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        final token = TokenStorage.instance.token;
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+    ));
+
+    // Logging interceptor for debugging
     dio.interceptors.add(LogInterceptor(
       request: true,
-      requestHeader: true,
+      requestHeader: false,
       requestBody: true,
-      responseHeader: true,
+      responseHeader: false,
       responseBody: true,
       error: true,
     ));
-    
+
     return dio;
   });
 }

@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../../../domain/entities/badge.dart' as entity;
 import '../../viewmodels/badge_view_model.dart';
+// inline points display
 
 class BadgesScreen extends StatefulWidget {
   final String userId;
 
-  const BadgesScreen({super.key, required this.userId});
+  const BadgesScreen({
+    super.key,
+    required this.userId,
+  });
 
   @override
   State<BadgesScreen> createState() => _BadgesScreenState();
@@ -16,89 +22,263 @@ class _BadgesScreenState extends State<BadgesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BadgeViewModel>().loadUserBadges(widget.userId);
+      final vm = context.read<BadgeViewModel>();
+      vm.loadUserBadges(widget.userId);
+      vm.loadAllBadges(); // Assuming BadgeViewModel has this
+      // vm.loadPoints(); // Let's ensure this exists or skip
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<BadgeViewModel>();
-
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('My Cultural Badges', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Achievements', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
-      body: _buildContent(viewModel),
+      body: Consumer<BadgeViewModel>(
+        builder: (context, viewModel, child) {
+          if (viewModel.state == BadgeState.loading && viewModel.allBadges.isEmpty) {
+            return const Center(child: CircularProgressIndicator(color: Color(0xFFC5A358)));
+          }
+
+          if (viewModel.state == BadgeState.error && viewModel.allBadges.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(viewModel.errorMessage ?? 'Could not load badges', style: const TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      viewModel.loadAllBadges();
+                      viewModel.loadUserBadges(widget.userId);
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC5A358), foregroundColor: Colors.white),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return CustomScrollView(
+            slivers: [
+              _buildPointsSummary(viewModel),
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+                  child: Text(
+                    'All Badges',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              _buildBadgesGrid(viewModel),
+              const SliverPadding(padding: EdgeInsets.only(bottom: 40)),
+            ],
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildContent(BadgeViewModel viewModel) {
-    if (viewModel.state == BadgeState.loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+  Widget _buildPointsSummary(BadgeViewModel viewModel) {
+    // Determine the user's total points. You might need to add points to BadgeViewModel
+    final totalPoints = viewModel.userBadges.fold<int>(0, (sum, ub) => sum + ub.badge.pointsReward);
 
-    if (viewModel.state == BadgeState.error) {
-      return Center(
-        child: Text(viewModel.errorMessage ?? 'An error occurred', style: const TextStyle(color: Colors.red)),
-      );
-    }
-
-    if (viewModel.userBadges.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.military_tech_outlined, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No badges earned yet.', style: TextStyle(fontSize: 18, color: Colors.grey)),
-            SizedBox(height: 8),
-            Text('Visit places and share photos to earn badges!'),
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFFC5A358).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
           ],
+        ),
+        child: Column(
+          children: [
+            const Text('Total Points', style: TextStyle(color: Colors.white70, fontSize: 16)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$totalPoints',
+                  style: const TextStyle(color: Color(0xFFC5A358), fontSize: 48, fontWeight: FontWeight.bold, height: 1),
+                ),
+                const SizedBox(width: 8),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8.0),
+                  child: Text('pts', style: TextStyle(color: Colors.white70, fontSize: 18)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text('Keep exploring to earn more badges and rise on the leaderboard!', 
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadgesGrid(BadgeViewModel viewModel) {
+    if (viewModel.allBadges.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(40.0),
+          child: Center(
+            child: Text('No badges available yet.', style: TextStyle(color: Colors.grey)),
+          ),
         ),
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.8,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+    // Sort: Earned first, then Unearned
+    final sortedBadges = List<entity.Badge>.from(viewModel.allBadges);
+    sortedBadges.sort((a, b) {
+      final aEarned = viewModel.userBadges.any((ub) => ub.badge.id == a.id);
+      final bEarned = viewModel.userBadges.any((ub) => ub.badge.id == b.id);
+      if (aEarned && !bEarned) return -1;
+      if (!aEarned && bEarned) return 1;
+      return a.id.compareTo(b.id);
+    });
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.75, // Adjust for taller cards
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final badge = sortedBadges[index];
+            final userBadge = viewModel.userBadges.where((ub) => ub.badge.id == badge.id).firstOrNull;
+            final isEarned = userBadge != null;
+            
+            // Optional progress tracker from backend, if available via UI
+            final progress = isEarned ? null : null; // In real app, might read from UserBadge.progress
+            
+            return _buildBadgeCard(badge, isEarned, userBadge?.earnedAt, progress);
+          },
+          childCount: sortedBadges.length,
+        ),
       ),
-      itemCount: viewModel.userBadges.length,
-      itemBuilder: (context, index) {
-        final userBadge = viewModel.userBadges[index];
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildBadgeCard(entity.Badge badge, bool isEarned, DateTime? earnedAt, int? progress) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isEarned ? const Color(0xFFC5A358).withValues(alpha: 0.5) : Colors.transparent,
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                  backgroundImage: NetworkImage(userBadge.badge.iconUrl),
-                  onBackgroundImageError: (_, __) => const Icon(Icons.star, size: 40, color: Colors.amber),
+                Opacity(
+                  opacity: isEarned ? 1.0 : 0.3,
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isEarned ? const Color(0xFFC5A358).withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+                    ),
+                    child: badge.iconUrl.isNotEmpty
+                      ? ClipOval(child: Image.network(badge.iconUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _fallbackIcon(isEarned)))
+                      : _fallbackIcon(isEarned),
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Text(
-                  userBadge.badge.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  badge.name,
                   textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isEarned ? Colors.black87 : Colors.grey[600],
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
-                  'Earned: ${userBadge.earnedAt.toLocal().toString().split(' ')[0]}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  isEarned ? (earnedAt != null ? DateFormat('MMM d, yyyy').format(earnedAt) : 'Earned!') : badge.criteria,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isEarned ? const Color(0xFFC5A358) : Colors.grey,
+                    fontWeight: isEarned ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
+                if (!isEarned && progress != null) ...[ // Generic progress example
+                  const Spacer(),
+                  LinearProgressIndicator(
+                    value: 0.3, // Mock percentage
+                    backgroundColor: Colors.grey[200],
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC5A358)),
+                  ),
+                ]
               ],
             ),
           ),
-        );
-      },
+          if (isEarned)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFC5A358),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 12),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fallbackIcon(bool isEarned) {
+    return Icon(
+      Icons.workspace_premium,
+      size: 40,
+      color: isEarned ? const Color(0xFFC5A358) : Colors.grey,
     );
   }
 }

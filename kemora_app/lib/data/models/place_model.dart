@@ -38,3 +38,30 @@ class PlaceModel extends Place {
     };
   }
 }
+
+class GovernorateModel extends Governorate {
+  const GovernorateModel({
+    required super.id,
+    required super.name,
+    super.imageUrl,
+    super.region,
+  });
+
+  factory GovernorateModel.fromJson(Map<String, dynamic> json) {
+    return GovernorateModel(
+      id: json['id']?.toString() ?? '',
+      name: json['name'] as String? ?? 'Unknown Governorate',
+      imageUrl: json['imageUrl'] as String?,
+      region: json['region'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'imageUrl': imageUrl,
+      'region': region,
+    };
+  }
+}

@@ -21,7 +21,10 @@ namespace Kemora.Application.Mapping
             CreateMap<Badge, BadgeResponseDto>();
             CreateMap<UserBadge, UserBadgeResponseDto>()
                 .ForMember(d => d.BadgeName, o => o.MapFrom(s => s.Badge.Name))
-                .ForMember(d => d.BadgeDescription, o => o.MapFrom(s => s.Badge.Description));
+                .ForMember(d => d.BadgeDescription, o => o.MapFrom(s => s.Badge.Description))
+                .ForMember(d => d.IconUrl, o => o.MapFrom(s => s.Badge.IconUrl))
+                .ForMember(d => d.Criteria, o => o.MapFrom(s => s.Badge.Criteria))
+                .ForMember(d => d.PointsReward, o => o.MapFrom(s => s.Badge.PointsReward));
             CreateMap<UserPoint, PointHistoryDto>()
                 .ForMember(d => d.SourcePlaceName, o => o.MapFrom(s => s.SourcePlace.Name));
             CreateMap<ApplicationUser, LeaderboardEntryDto>()
@@ -49,20 +52,25 @@ namespace Kemora.Application.Mapping
             CreateMap<Post, PostListResponseDto>()
                 .ForMember(d => d.AuthorId, o => o.MapFrom(s => s.UserID))
                 .ForMember(d => d.AuthorName, o => o.MapFrom(s => s.User.FullName))
+                .ForMember(d => d.AuthorProfilePicture, o => o.MapFrom(s => s.User.ProfilePictureUrl))
                 .ForMember(d => d.ReactionCount, o => o.MapFrom(s => s.Reactions.Count))
-                .ForMember(d => d.CommentCount, o => o.MapFrom(s => s.Comments.Count));
+                .ForMember(d => d.CommentCount, o => o.MapFrom(s => s.Comments.Count))
+                .ForMember(d => d.IsLikedByMe, o => o.Ignore());
             
             CreateMap<Post, PostDetailResponseDto>()
                 .ForMember(d => d.AuthorId, o => o.MapFrom(s => s.UserID))
                 .ForMember(d => d.AuthorName, o => o.MapFrom(s => s.User.FullName))
+                .ForMember(d => d.AuthorProfilePicture, o => o.MapFrom(s => s.User.ProfilePictureUrl))
                 .ForMember(d => d.ReactionCount, o => o.MapFrom(s => s.Reactions.Count))
                 .ForMember(d => d.CommentCount, o => o.MapFrom(s => s.Comments.Count))
-                .ForMember(d => d.Comments, o => o.MapFrom(s => s.Comments.OrderByDescending(c => c.CreatedAt)));
+                .ForMember(d => d.IsLikedByMe, o => o.Ignore())
+                .ForMember(d => d.Comments, o => o.MapFrom(s => s.Comments.Where(c => c.ParentCommentId == null).OrderByDescending(c => c.CreatedAt)));
 
             CreateMap<Comment, CommentResponseDto>()
                 .ForMember(d => d.AuthorId, o => o.MapFrom(s => s.UserID))
                 .ForMember(d => d.AuthorName, o => o.MapFrom(s => s.User.FullName))
-                .ForMember(d => d.ReactionCount, o => o.MapFrom(s => s.Reactions.Count));
+                .ForMember(d => d.AuthorProfilePicture, o => o.MapFrom(s => s.User.ProfilePictureUrl))
+                .ForMember(d => d.Replies, o => o.MapFrom(s => s.Replies.OrderByDescending(r => r.CreatedAt)));
 
             // Reviews
             CreateMap<Review, ReviewResponseDto>();
@@ -72,6 +80,13 @@ namespace Kemora.Application.Mapping
 
             // Photos
             CreateMap<Photo, PhotoResponseDto>();
+
+            // Messages
+            CreateMap<Message, MessageDto>()
+                .ForMember(d => d.SenderName, o => o.MapFrom(s => s.Sender.FullName))
+                .ForMember(d => d.SenderProfilePicture, o => o.MapFrom(s => s.Sender.ProfilePictureUrl))
+                .ForMember(d => d.ReceiverName, o => o.MapFrom(s => s.Receiver.FullName))
+                .ForMember(d => d.ReceiverProfilePicture, o => o.MapFrom(s => s.Receiver.ProfilePictureUrl));
 
             // Events
             CreateMap<Event, EventResponseDto>();

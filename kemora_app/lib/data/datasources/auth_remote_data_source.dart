@@ -1,16 +1,36 @@
 import 'package:dio/dio.dart';
 import '../../core/error/failures.dart';
 import '../models/user_model.dart';
+import '../../domain/entities/user_preferences.dart';
 
 abstract class AuthRemoteDataSource {
   Future<UserModel> login(String email, String password);
   Future<UserModel> register(String fullName, String email, String country, String password);
+  Future<UserModel> googleLogin(String idToken);
+  Future<UserModel> updatePreferences(UserPreferences preferences);
+  Future<void> changePassword(String currentPassword, String newPassword);
+  Future<void> changeEmail(String newEmail, String password);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio dio;
 
   AuthRemoteDataSourceImpl({required this.dio});
+
+  /// Extract a friendly error from a Dio exception
+  String _extractError(DioException e, String fallback) {
+    final data = e.response?.data;
+    if (data is String && data.isNotEmpty) return data;
+    if (data is Map) {
+      return data['message']?.toString() ??
+          data['title']?.toString() ??
+          data['error']?.toString() ??
+          fallback;
+    }
+    // No response — show the actual connection error (e.g. "Connection refused")
+    final msg = e.message ?? e.type.name;
+    return '$fallback\n[Network: $msg]';
+  }
 
   @override
   Future<UserModel> login(String email, String password) async {
@@ -19,17 +39,45 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         '/api/v1/auth/login',
         data: {'email': email, 'password': password},
       );
-      
-      if (response.statusCode == 200) {
-        // Handle both `{ user: {...} }` and flat `{ id, email, token }` responses
-        return UserModel.fromJson(response.data['user'] ?? response.data);
-      } else {
-        throw const ServerFailure('Invalid credentials');
-      }
+      // Backend returns AuthResponseDto flat at response.data
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      final data = e.response?.data;
-      final errorMessage = data is String ? data : (data?['message'] ?? 'Server Error');
-      throw ServerFailure(errorMessage);
+      throw ServerFailure(_extractError(e, 'Login failed. Please check your credentials.'));
+    } catch (e) {
+      throw ServerFailure('An unexpected error occurred: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<UserModel> googleLogin(String idToken) async {
+    try {
+      final response = await dio.post(
+        '/api/v1/auth/google-login',
+        data: {'idToken': idToken},
+      );
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ServerFailure(_extractError(e, 'Google login failed.'));
+    } catch (e) {
+      throw ServerFailure('An unexpected error occurred: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<UserModel> updatePreferences(UserPreferences preferences) async {
+    try {
+      final response = await dio.post(
+        '/api/v1/auth/preferences',
+        data: preferences.toJson(),
+      );
+      // Backend returns { message: ... } — reconstruct user from stored state isn't possible here.
+      // Return an empty placeholder that the ViewModel will ignore (preferences updated message is ok)
+      if (response.statusCode == 200) {
+        return UserModel.fromJson(const {'userId': '', 'email': '', 'fullName': ''});
+      }
+      throw const ServerFailure('Failed to update preferences');
+    } on DioException catch (e) {
+      throw ServerFailure(_extractError(e, 'Failed to update preferences.'));
     }
   }
 
@@ -42,19 +90,48 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'fullName': fullName,
           'email': email,
           'country': country,
-          'password': password
+          'password': password,
         },
       );
-      
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return UserModel.fromJson(response.data['user'] ?? response.data);
-      } else {
-        throw const ServerFailure('Registration failed');
-      }
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      final data = e.response?.data;
-      final errorMessage = data is String ? data : (data?['message'] ?? 'Server Error');
-      throw ServerFailure(errorMessage);
+      throw ServerFailure(_extractError(e, 'Registration failed.'));
+    } catch (e) {
+      throw ServerFailure('An unexpected error occurred: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    try {
+      await dio.post(
+        '/api/v1/auth/change-password',
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+    } on DioException catch (e) {
+      throw ServerFailure(_extractError(e, 'Failed to change password.'));
+    } catch (e) {
+      throw ServerFailure('An unexpected error occurred: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> changeEmail(String newEmail, String password) async {
+    try {
+      await dio.post(
+        '/api/v1/auth/change-email',
+        data: {
+          'newEmail': newEmail,
+          'password': password,
+        },
+      );
+    } on DioException catch (e) {
+      throw ServerFailure(_extractError(e, 'Failed to change email.'));
+    } catch (e) {
+      throw ServerFailure('An unexpected error occurred: ${e.toString()}');
     }
   }
 }

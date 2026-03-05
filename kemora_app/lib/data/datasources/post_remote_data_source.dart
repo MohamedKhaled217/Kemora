@@ -1,14 +1,15 @@
 import 'package:dio/dio.dart';
 import '../../core/error/failures.dart';
 import '../models/post_model.dart';
+import 'package:image_picker/image_picker.dart';
 
 abstract class PostRemoteDataSource {
   Future<List<PostModel>> getFeed();
-  Future<PostModel> createPost(String content, {String? imagePath, String? locationId});
+  Future<PostModel> createPost(String content, {XFile? imageFile, String? locationId});
   Future<void> likePost(String postId);
   Future<void> unlikePost(String postId);
   Future<List<CommentModel>> getPostComments(String postId);
-  Future<CommentModel> addComment(String postId, String content);
+  Future<CommentModel> addComment(String postId, String content, {String? parentCommentId});
 }
 
 class PostRemoteDataSourceImpl implements PostRemoteDataSource {
@@ -21,7 +22,8 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
     try {
       final response = await dio.get('/api/v1/posts');
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
+        // Backend returns PagedResult, so we need 'items'
+        final List<dynamic> data = response.data['items'];
         return data.map((json) => PostModel.fromJson(json)).toList();
       } else {
         throw const ServerFailure('Failed to fetch feed');
@@ -32,15 +34,30 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   }
 
   @override
-  Future<PostModel> createPost(String content, {String? imagePath, String? locationId}) async {
+  Future<PostModel> createPost(String content, {XFile? imageFile, String? locationId}) async {
     try {
-      final formData = FormData.fromMap({
-        'content': content,
-        if (locationId != null) 'locationId': locationId,
-        if (imagePath != null) 'image': await MultipartFile.fromFile(imagePath),
-      });
+      String? remoteImageUrl;
+      
+      if (imageFile != null) {
+        final bytes = await imageFile.readAsBytes();
+        final formData = FormData.fromMap({
+          'file': MultipartFile.fromBytes(bytes, filename: imageFile.name),
+        });
+        
+        final uploadResponse = await dio.post('/api/v1/posts/image', data: formData);
+        if (uploadResponse.statusCode == 200) {
+          remoteImageUrl = uploadResponse.data['url'];
+        } else {
+          throw const ServerFailure('Failed to upload image to server');
+        }
+      }
 
-      final response = await dio.post('/api/v1/posts', data: formData);
+      final response = await dio.post('/api/v1/posts', data: {
+        'content': content,
+        // The API maps 'mediaURL' based on the DTO. Use exactly what the DTO expects.
+        'media': remoteImageUrl != null ? [{'mediaURL': remoteImageUrl, 'mediaType': 'Image'}] : null,
+      });
+      
       if (response.statusCode == 200 || response.statusCode == 201) {
         return PostModel.fromJson(response.data);
       } else {
@@ -54,7 +71,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   @override
   Future<void> likePost(String postId) async {
     try {
-      final response = await dio.post('/api/v1/reactions/like/$postId');
+      final response = await dio.post('/api/v1/posts/$postId/like');
       if (response.statusCode != 200) throw const ServerFailure('Failed to like post');
     } on DioException catch (e) {
       throw ServerFailure(e.response?.data['message'] ?? 'Server Error');
@@ -63,21 +80,17 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
 
   @override
   Future<void> unlikePost(String postId) async {
-    try {
-      final response = await dio.post('/api/v1/reactions/unlike/$postId');
-      if (response.statusCode != 200) throw const ServerFailure('Failed to unlike post');
-    } on DioException catch (e) {
-      throw ServerFailure(e.response?.data['message'] ?? 'Server Error');
-    }
+    // Backend ToggleLike handles both on same endpoint
+    await likePost(postId);
   }
 
   @override
   Future<List<CommentModel>> getPostComments(String postId) async {
     try {
-      final response = await dio.get('/api/v1/comments/post/$postId');
+      final response = await dio.get('/api/v1/posts/$postId');
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => CommentModel.fromJson(json)).toList();
+        final List<dynamic> data = response.data['comments'];
+        return data.map((json) => CommentModel.fromJson(json, postId)).toList();
       } else {
         throw const ServerFailure('Failed to fetch comments');
       }
@@ -87,11 +100,15 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   }
 
   @override
-  Future<CommentModel> addComment(String postId, String content) async {
+  Future<CommentModel> addComment(String postId, String content, {String? parentCommentId}) async {
     try {
-      final response = await dio.post('/api/v1/comments/post/$postId', data: {'content': content});
+      final data = <String, dynamic>{'content': content};
+      if (parentCommentId != null) {
+        data['parentCommentId'] = int.tryParse(parentCommentId);
+      }
+      final response = await dio.post('/api/v1/posts/$postId/comment', data: data);
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return CommentModel.fromJson(response.data);
+        return CommentModel.fromJson(response.data, postId);
       } else {
         throw const ServerFailure('Failed to add comment');
       }

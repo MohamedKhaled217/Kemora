@@ -17,5 +17,6 @@ namespace Kemora.Domain.Models
         public string? Website { get; set; }
         public List<string>? OpeningHours { get; set; }
         public double DistanceKm { get; set; }
+        public string? ImageUrl { get; set; }
     }
 }

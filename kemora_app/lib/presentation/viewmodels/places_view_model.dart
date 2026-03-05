@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/place.dart';
+import '../../domain/usecases/explore_usecases.dart';
 import '../../domain/usecases/get_places_usecase.dart';
 import '../../domain/usecases/get_places_by_category_usecase.dart';
 
@@ -8,10 +9,16 @@ enum PlacesState { initial, loading, loaded, error }
 class PlacesViewModel extends ChangeNotifier {
   final GetPlacesUseCase getPlacesUseCase;
   final GetPlacesByCategoryUseCase getPlacesByCategoryUseCase;
+  final GetTopPlacesUseCase getTopPlacesUseCase;
+  final GetGovernoratesUseCase getGovernoratesUseCase;
+  final GetPlacesByGovernorateUseCase getPlacesByGovernorateUseCase;
 
   PlacesViewModel({
     required this.getPlacesUseCase,
     required this.getPlacesByCategoryUseCase,
+    required this.getTopPlacesUseCase,
+    required this.getGovernoratesUseCase,
+    required this.getPlacesByGovernorateUseCase,
   });
 
   PlacesState _state = PlacesState.initial;
@@ -19,6 +26,12 @@ class PlacesViewModel extends ChangeNotifier {
 
   List<Place> _places = [];
   List<Place> get places => _places;
+
+  List<Place> _topPlaces = [];
+  List<Place> get topPlaces => _topPlaces;
+
+  List<Governorate> _governorates = [];
+  List<Governorate> get governorates => _governorates;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
@@ -48,5 +61,41 @@ class PlacesViewModel extends ChangeNotifier {
         notifyListeners();
       },
     );
+  }
+
+  Future<void> loadTopPlaces() async {
+    final result = await getTopPlacesUseCase();
+    result.fold(
+      (failure) => _errorMessage = failure.message,
+      (list) => _topPlaces = list,
+    );
+    notifyListeners();
+  }
+
+  Future<void> loadGovernorates() async {
+    final result = await getGovernoratesUseCase();
+    result.fold(
+      (failure) => _errorMessage = failure.message,
+      (list) => _governorates = list,
+    );
+    notifyListeners();
+  }
+
+  Future<void> loadPlacesByGovernorate(String governorateId) async {
+    _state = PlacesState.loading;
+    notifyListeners();
+    
+    final result = await getPlacesByGovernorateUseCase(governorateId);
+    result.fold(
+      (failure) {
+        _state = PlacesState.error;
+        _errorMessage = failure.message;
+      },
+      (list) {
+        _places = list;
+        _state = PlacesState.loaded;
+      },
+    );
+    notifyListeners();
   }
 }

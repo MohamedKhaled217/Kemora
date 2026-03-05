@@ -9,17 +9,23 @@ class CommentModel extends Comment {
     required super.authorProfilePicture,
     required super.content,
     required super.createdAt,
+    super.parentCommentId,
+    super.replies,
   });
 
-  factory CommentModel.fromJson(Map<String, dynamic> json) {
+  factory CommentModel.fromJson(Map<String, dynamic> json, String postId) {
     return CommentModel(
-      id: json['id']?.toString() ?? '',
-      postId: json['postId']?.toString() ?? '',
+      id: json['commentID']?.toString() ?? '',
+      postId: postId,
       authorId: json['authorId']?.toString() ?? '',
       authorName: json['authorName'] as String? ?? 'Unknown User',
       authorProfilePicture: json['authorProfilePicture'] as String? ?? 'https://via.placeholder.com/150',
       content: json['content'] as String? ?? '',
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      parentCommentId: json['parentCommentId']?.toString(),
+      replies: json['replies'] != null 
+          ? (json['replies'] as List).map((r) => CommentModel.fromJson(r, postId)).toList() 
+          : [],
     );
   }
 }
@@ -41,18 +47,24 @@ class PostModel extends Post {
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
+    // Media handling: assuming one image for simplicity in the basic model
+    String? imageUrl;
+    if (json['media'] != null && (json['media'] as List).isNotEmpty) {
+      imageUrl = json['media'][0]['mediaURL'];
+    }
+
     return PostModel(
-      id: json['id']?.toString() ?? '',
+      id: json['postID']?.toString() ?? '',
       authorId: json['authorId']?.toString() ?? '',
       authorName: json['authorName'] as String? ?? 'Unknown Author',
       authorProfilePicture: json['authorProfilePicture'] as String? ?? 'https://via.placeholder.com/150',
       content: json['content'] as String? ?? '',
-      imageUrl: json['imageUrl'] as String?,
-      locationId: json['locationId']?.toString(),
-      locationName: json['locationName'] as String?,
+      imageUrl: imageUrl,
+      locationId: json['linkedTripId']?.toString(), // Example mapping
+      locationName: null, // Would need more backend data for this
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      likesCount: json['likesCount'] as int? ?? 0,
-      commentsCount: json['commentsCount'] as int? ?? 0,
+      likesCount: json['reactionCount'] as int? ?? 0,
+      commentsCount: json['commentCount'] as int? ?? 0,
       isLikedByMe: json['isLikedByMe'] as bool? ?? false,
     );
   }

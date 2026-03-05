@@ -15,6 +15,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using System;
+using Microsoft.Extensions.Configuration;
 
 namespace Kemora.Tests.Services
 {
@@ -25,6 +26,7 @@ namespace Kemora.Tests.Services
         private readonly Mock<ITokenService> _mockTokenService;
         private readonly Mock<IEmailService> _mockEmailService;
         private readonly Mock<IMapper> _mockMapper;
+        private readonly Mock<IConfiguration> _mockConfiguration;
         private readonly ApplicationDbContext _dbContext;
         private readonly AuthService _service;
 
@@ -40,6 +42,7 @@ namespace Kemora.Tests.Services
             _mockTokenService = new Mock<ITokenService>();
             _mockEmailService = new Mock<IEmailService>();
             _mockMapper = new Mock<IMapper>();
+            _mockConfiguration = new Mock<IConfiguration>();
 
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
@@ -53,7 +56,8 @@ namespace Kemora.Tests.Services
                 _mockTokenService.Object,
                 _dbContext,
                 _mockEmailService.Object,
-                _mockMapper.Object);
+                _mockMapper.Object,
+                _mockConfiguration.Object);
         }
 
         [Fact]

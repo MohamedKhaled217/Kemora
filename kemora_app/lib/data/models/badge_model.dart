@@ -7,15 +7,17 @@ class BadgeModel extends Badge {
     required super.description,
     required super.iconUrl,
     required super.criteria,
+    required super.pointsReward,
   });
 
   factory BadgeModel.fromJson(Map<String, dynamic> json) {
     return BadgeModel(
-      id: json['id']?.toString() ?? '',
+      id: json['badgeID']?.toString() ?? '',
       name: json['name'] as String? ?? 'Unknown Badge',
       description: json['description'] as String? ?? '',
       iconUrl: json['iconUrl'] as String? ?? 'https://via.placeholder.com/150',
       criteria: json['criteria'] as String? ?? '',
+      pointsReward: json['pointsReward'] as int? ?? 0,
     );
   }
 }
@@ -30,7 +32,7 @@ class UserBadgeModel extends UserBadge {
 
   factory UserBadgeModel.fromJson(Map<String, dynamic> json) {
     return UserBadgeModel(
-      id: json['id']?.toString() ?? '',
+      id: json['badgeID']?.toString() ?? '',
       userId: json['userId']?.toString() ?? '',
       badge: BadgeModel.fromJson(json['badge'] ?? {}),
       earnedAt: json['earnedAt'] != null ? DateTime.parse(json['earnedAt']) : DateTime.now(),

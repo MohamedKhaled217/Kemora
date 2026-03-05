@@ -9,6 +9,7 @@ namespace Kemora.Application.DTOs
         public int GovernorateID { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Region { get; set; } = string.Empty;
+        public string? ImageURL { get; set; }
     }
 
     public class CategoryDto

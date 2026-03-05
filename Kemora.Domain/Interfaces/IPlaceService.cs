@@ -26,5 +26,10 @@ namespace Kemora.Domain.Interfaces
             string? location = null,
             List<TourismType>? tourismTypes = null,
             string? preferences = null);
+
+        /// <summary>
+        /// Suggests an alternative single activity/place if the user dislikes one in their itinerary.
+        /// </summary>
+        Task<string> SwapPlaceAsync(string currentPlaceName, string preferences);
     }
 }

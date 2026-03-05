@@ -6,6 +6,7 @@ class Badge extends Equatable {
   final String description;
   final String iconUrl;
   final String criteria;
+  final int pointsReward;
 
   const Badge({
     required this.id,
@@ -13,10 +14,11 @@ class Badge extends Equatable {
     required this.description,
     required this.iconUrl,
     required this.criteria,
+    required this.pointsReward,
   });
 
   @override
-  List<Object?> get props => [id, name, description, iconUrl, criteria];
+  List<Object?> get props => [id, name, description, iconUrl, criteria, pointsReward];
 }
 
 class UserBadge extends Equatable {

@@ -31,6 +31,12 @@ namespace Kemora.Application.DTOs
         public string Password { get; set; }
     }
 
+    public class GoogleLoginDto
+    {
+        [Required(ErrorMessage = "ID Token is required.")]
+        public string IdToken { get; set; }
+    }
+
     public class AuthResponseDto
     {
         public string UserId { get; set; }
@@ -79,5 +85,25 @@ namespace Kemora.Application.DTOs
 
         [Required(ErrorMessage = "Confirmation token is required.")]
         public string Token { get; set; }
+    }
+
+    public class ChangePasswordDto
+    {
+        [Required(ErrorMessage = "Current password is required.")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "New password is required.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "New password must be at least 8 characters long.")]
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class ChangeEmailDto
+    {
+        [Required(ErrorMessage = "New email address is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email address format.")]
+        public string NewEmail { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required to confirm email change.")]
+        public string Password { get; set; } = string.Empty;
     }
 }

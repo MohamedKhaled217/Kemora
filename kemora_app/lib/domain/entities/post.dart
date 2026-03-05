@@ -8,6 +8,8 @@ class Comment extends Equatable {
   final String authorProfilePicture;
   final String content;
   final DateTime createdAt;
+  final String? parentCommentId;
+  final List<Comment> replies;
 
   const Comment({
     required this.id,
@@ -17,10 +19,12 @@ class Comment extends Equatable {
     required this.authorProfilePicture,
     required this.content,
     required this.createdAt,
+    this.parentCommentId,
+    this.replies = const [],
   });
 
   @override
-  List<Object?> get props => [id, postId, authorId, authorName, authorProfilePicture, content, createdAt];
+  List<Object?> get props => [id, postId, authorId, authorName, authorProfilePicture, content, createdAt, parentCommentId, replies];
 }
 
 class Post extends Equatable {
@@ -37,6 +41,9 @@ class Post extends Equatable {
   final int commentsCount;
   final bool isLikedByMe;
 
+  final String? recommendedTripId;
+  final String? recommendedTripTitle;
+
   const Post({
     required this.id,
     required this.authorId,
@@ -50,6 +57,8 @@ class Post extends Equatable {
     this.likesCount = 0,
     this.commentsCount = 0,
     this.isLikedByMe = false,
+    this.recommendedTripId,
+    this.recommendedTripTitle,
   });
 
   @override
@@ -66,5 +75,7 @@ class Post extends Equatable {
         likesCount,
         commentsCount,
         isLikedByMe,
+        recommendedTripId,
+        recommendedTripTitle,
       ];
 }

@@ -18,8 +18,7 @@ class AppTheme {
         primary: primaryGold,
         secondary: primaryBlue,
         tertiary: accentOasis,
-        background: backgroundColor,
-        surface: cardColor,
+        surface: backgroundColor,
       ),
       scaffoldBackgroundColor: backgroundColor,
       appBarTheme: const AppBarTheme(
@@ -49,7 +48,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: cardColor,
         elevation: 4,
-        shadowColor: primaryBlue.withOpacity(0.1),
+        shadowColor: primaryBlue.withAlpha(25),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -59,11 +58,11 @@ class AppTheme {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primarySand),
+          borderSide: const BorderSide(color: primarySand),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primarySand),
+          borderSide: const BorderSide(color: primarySand),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

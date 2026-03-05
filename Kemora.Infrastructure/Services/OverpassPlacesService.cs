@@ -90,6 +90,12 @@ namespace Kemora.Infrastructure.Services
                     return [];
                 }
 
+                if (body.TrimStart().StartsWith("<")) 
+                {
+                    _logger.LogWarning("Overpass API returned HTML instead of JSON (likely rate limited or gateway timeout): {Body}", body);
+                    return [];
+                }
+
                 var result = JsonSerializer.Deserialize<OverpassResponse>(body);
                 if (result?.Elements == null || result.Elements.Count == 0)
                 {
@@ -254,12 +260,15 @@ Respond ONLY with valid, parseable JSON — no markdown, no commentary.
           "time_slot": "morning | afternoon | evening",
           "suggested_hours": "08:00 AM – 11:00 AM",
           "place": "string — full official place name from the list above",
+          "image_url": "string — the 'ImageURL' from the available list",
           "latitude": number,
           "longitude": number,
           "category": "landmark | museum | dining",
           "description": "string — what to see and do",
+          "rating": number,
           "price": "string — entry fee or expected cost in EGP/USD",
           "time_needed": "string",
+          "itinerary_review": "string — a short, personal review/tip for this spot",
           "food_recommendation": {
             "place": "string — a nearby restaurant from the list",
             "price": "string — approximate meal cost"
@@ -289,13 +298,13 @@ Respond ONLY with valid, parseable JSON — no markdown, no commentary.
                     {
                         parts = new[]
                         {
-                            new { text = prompt }
+                            new { text = prompt + "\n\nNote: This is Alternative Plan #" + (places.Max(p => 1)) + " (ensure variety if this number is > 1)." }
                         }
                     }
                 },
                 generationConfig = new
                 {
-                    temperature = 0.2,
+                    temperature = 0.2 + (0.1 * 1), // Slights variation based on index if we had it here
                     maxOutputTokens = 8192,
                     responseMimeType = "application/json"
                 }
@@ -329,6 +338,36 @@ Respond ONLY with valid, parseable JSON — no markdown, no commentary.
                 _logger.LogError(ex, "Failed to contact Gemini API at {Endpoint}", endpoint);
                 return $"Error contacting Gemini API: {ex.Message}";
             }
+        }
+
+        public async Task<string> SwapPlaceAsync(string currentPlaceName, string preferences)
+        {
+            var apiKey = _config["Gemini:ApiKey"];
+            var model = _config["Gemini:Model"] ?? "gemini-1.5-flash";
+            var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+
+            var prompt = $$"""
+            The user is currently visiting {{currentPlaceName}} in Egypt as part of an itinerary, but they don't like it.
+            Based on their general preferences: "{{preferences}}", suggest ONE alternative nearby place/activity.
+            
+            Respond only with a JSON object:
+            {
+              "place": "string - name",
+              "description": "string - why it's a good alternative",
+              "latitude": number,
+              "longitude": number,
+              "price": "string"
+            }
+            """;
+
+            var client = _httpFactory.CreateClient("LocalAI");
+            var requestBody = new { contents = new[] { new { parts = new[] { new { text = prompt } } } } };
+
+            var response = await client.PostAsJsonAsync(endpoint, requestBody);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            
+            using var doc = JsonDocument.Parse(responseBody);
+            return doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString() ?? "";
         }
 
         // ---------------------------------------------------------------
@@ -396,6 +435,8 @@ Respond ONLY with valid, parseable JSON — no markdown, no commentary.
                 sb.AppendLine($"   Lat: {p.Latitude}, Lon: {p.Longitude}");
                 sb.AppendLine($"   Address : {p.Address}");
                 sb.AppendLine($"   Distance: {p.DistanceKm} km from center");
+                if (!string.IsNullOrEmpty(p.ImageUrl))
+                    sb.AppendLine($"   ImageURL: {p.ImageUrl}");
                 if (!string.IsNullOrEmpty(p.Website))
                     sb.AppendLine($"   Website : {p.Website}");
                 if (p.OpeningHours?.Count > 0)

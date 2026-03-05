@@ -5,6 +5,9 @@ import '../models/place_model.dart';
 abstract class PlacesRemoteDataSource {
   Future<List<PlaceModel>> getPlaces();
   Future<List<PlaceModel>> getPlacesByCategory(String category);
+  Future<List<PlaceModel>> getTopPlaces();
+  Future<List<GovernorateModel>> getGovernorates();
+  Future<List<PlaceModel>> getPlacesByGovernorate(String governorateId);
   Future<PlaceModel> getPlaceDetails(String id);
 }
 
@@ -18,7 +21,6 @@ class PlacesRemoteDataSourceImpl implements PlacesRemoteDataSource {
     try {
       final response = await dio.get('/api/v1/places');
       if (response.statusCode == 200) {
-        // The API returns a PagedResult containing an 'items' array
         final data = response.data['items'] ?? response.data;
         if (data is List) {
           return data.map((json) => PlaceModel.fromJson(json)).toList();
@@ -35,9 +37,8 @@ class PlacesRemoteDataSourceImpl implements PlacesRemoteDataSource {
   @override
   Future<List<PlaceModel>> getPlacesByCategory(String category) async {
     try {
-      final response = await dio.get('/api/v1/places', queryParameters: {'category': category});
+      final response = await dio.get('/api/v1/places', queryParameters: {'categoryName': category});
       if (response.statusCode == 200) {
-        // The API returns a PagedResult containing an 'items' array
         final data = response.data['items'] ?? response.data;
         if (data is List) {
           return data.map((json) => PlaceModel.fromJson(json)).toList();
@@ -45,6 +46,54 @@ class PlacesRemoteDataSourceImpl implements PlacesRemoteDataSource {
         return [];
       } else {
         throw const ServerFailure('Failed to load places by category');
+      }
+    } on DioException catch (e) {
+      throw ServerFailure(e.response?.data['message'] ?? 'Server Error');
+    }
+  }
+
+  @override
+  Future<List<PlaceModel>> getTopPlaces() async {
+    try {
+      final response = await dio.get('/api/v1/places/top');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => PlaceModel.fromJson(json)).toList();
+      } else {
+        throw const ServerFailure('Failed to load top places');
+      }
+    } on DioException catch (e) {
+      throw ServerFailure(e.response?.data['message'] ?? 'Server Error');
+    }
+  }
+
+  @override
+  Future<List<GovernorateModel>> getGovernorates() async {
+    try {
+      final response = await dio.get('/api/v1/places/governorates');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => GovernorateModel.fromJson(json)).toList();
+      } else {
+        throw const ServerFailure('Failed to load governorates');
+      }
+    } on DioException catch (e) {
+      throw ServerFailure(e.response?.data['message'] ?? 'Server Error');
+    }
+  }
+
+  @override
+  Future<List<PlaceModel>> getPlacesByGovernorate(String governorateId) async {
+    try {
+      final response = await dio.get('/api/v1/places', queryParameters: {'governorateId': governorateId});
+      if (response.statusCode == 200) {
+        final data = response.data['items'] ?? response.data;
+        if (data is List) {
+          return data.map((json) => PlaceModel.fromJson(json)).toList();
+        }
+        return [];
+      } else {
+        throw const ServerFailure('Failed to load places by governorate');
       }
     } on DioException catch (e) {
       throw ServerFailure(e.response?.data['message'] ?? 'Server Error');

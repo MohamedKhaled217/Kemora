@@ -4,6 +4,8 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/app_provider.dart';
 import '../../services/mock_data_service.dart';
 import 'widgets/achievement_card.dart';
+import '../../presentation/viewmodels/auth_view_model.dart';
+import '../../presentation/screens/profile/settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -14,6 +16,7 @@ class ProfileScreen extends StatelessWidget {
     // Show only first 2 achievements
     final displayedAchievements = allAchievements.take(2).toList();
     final l10n = AppLocalizations.of(context)!;
+    final user = context.watch<AuthViewModel>().user;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -21,20 +24,25 @@ class ProfileScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 40),
             // User Header
-            const CircleAvatar(
+            CircleAvatar(
               radius: 50,
-              backgroundImage: NetworkImage(
-                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
-              ), // Mock User User
+              backgroundImage: user?.profilePictureUrl != null 
+                ? NetworkImage(user!.profilePictureUrl!) 
+                : const NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'),
+              child: InkWell(
+                onTap: () {
+                  // TODO: Image Picker
+                },
+              ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Alex Johnson',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              user?.fullName ?? 'Alex Johnson',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            const Text(
-              'Passionate Traveler',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
+            Text(
+              user?.bio ?? 'Passionate Traveler',
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
             ),
             const SizedBox(height: 32),
 
@@ -122,6 +130,39 @@ class ProfileScreen extends StatelessWidget {
                       );
                     },
                   ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.settings, color: Colors.blue),
+                  title: const Text('Account Settings'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text('Logout', style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    context.read<AuthViewModel>().logout();
+                  },
                 ),
               ),
             ),

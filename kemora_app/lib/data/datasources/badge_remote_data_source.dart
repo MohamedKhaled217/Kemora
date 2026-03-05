@@ -30,7 +30,7 @@ class BadgeRemoteDataSourceImpl implements BadgeRemoteDataSource {
   @override
   Future<List<UserBadgeModel>> getUserBadges(String userId) async {
     try {
-      final response = await dio.get('/api/v1/badges/user/$userId');
+      final response = await dio.get('/api/v1/my/badges');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => UserBadgeModel.fromJson(json)).toList();

@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace Kemora.Api.Controllers
 {
@@ -63,10 +65,8 @@ namespace Kemora.Api.Controllers
         [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> GoogleLogin([FromBody] ExternalLoginDto model)
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto model)
         {
-            if (model.Provider?.ToUpper() != "GOOGLE")
-                return BadRequest("Unsupported provider");
 
             var (succeeded, error, data) = await _authService.GoogleLoginAsync(model.IdToken);
             if (!succeeded) return Unauthorized(error);
@@ -97,6 +97,49 @@ namespace Kemora.Api.Controllers
             var (succeeded, error) = await _authService.ConfirmEmailAsync(model.UserId, model.Token);
             if (!succeeded) return BadRequest(error);
             return Ok(new { message = "Email confirmed successfully." });
+        }
+
+        /// <summary>
+        /// Confirm email via a direct link (GET request).
+        /// </summary>
+        [HttpGet("confirm-email-link")]
+        public async Task<IActionResult> ConfirmEmailLink([FromQuery] string userId, [FromQuery] string token)
+        {
+            var (succeeded, error) = await _authService.ConfirmEmailAsync(userId, token);
+            
+            string title = succeeded ? "Email Verified" : "Verification Failed";
+            string icon = succeeded ? "✅" : "❌";
+            string color = succeeded ? "#C5A358" : "#e74c3c";
+            string message = succeeded 
+                ? "Your email has been successfully verified. You can now return to the Kemora app and start your journey." 
+                : $"Verification failed: {error}. Please try resending the confirmation email from the app.";
+
+            string html = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{title}</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
+        .card {{ background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; max-width: 400px; width: 90%; }}
+        .icon {{ font-size: 64px; margin-bottom: 20px; }}
+        h1 {{ color: #1a1a1a; margin-bottom: 16px; font-size: 24px; }}
+        p {{ color: #666; line-height: 1.6; margin-bottom: 30px; }}
+        .btn {{ background-color: {color}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; }}
+    </style>
+</head>
+<body>
+    <div class='card'>
+        <div class='icon'>{icon}</div>
+        <h1>{title}</h1>
+        <p>{message}</p>
+        <a href='#' onclick='window.close()' class='btn'>Close Window</a>
+    </div>
+</body>
+</html>";
+
+            return Content(html, "text/html");
         }
 
         /// <summary>
@@ -135,6 +178,54 @@ namespace Kemora.Api.Controllers
             var (succeeded, error) = await _authService.SendEmailConfirmationAsync(email);
             if (!succeeded) return BadRequest(error);
             return Ok(new { message = "Confirmation email sent." });
+        }
+        [Authorize]
+        [HttpPost("preferences")]
+        public async Task<IActionResult> UpdatePreferences([FromBody] JsonElement preferences)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var result = await _authService.UpdatePreferencesAsync(userId, preferences.GetRawText());
+            if (!result.Succeeded) return BadRequest(result.Error);
+
+            return Ok(new { message = "Preferences updated successfully" });
+        }
+
+        /// <summary>
+        /// Change the authenticated user's password.
+        /// </summary>
+        [HttpPost("change-password")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var (succeeded, error) = await _authService.ChangePasswordAsync(userId, dto.CurrentPassword, dto.NewPassword);
+            if (!succeeded) return BadRequest(error);
+            
+            return Ok(new { message = "Password changed successfully." });
+        }
+
+        /// <summary>
+        /// Change the authenticated user's email address.
+        /// </summary>
+        [HttpPost("change-email")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var (succeeded, error) = await _authService.ChangeEmailAsync(userId, dto.NewEmail, dto.Password);
+            if (!succeeded) return BadRequest(error);
+            
+            return Ok(new { message = "Email changed successfully." });
         }
     }
 }

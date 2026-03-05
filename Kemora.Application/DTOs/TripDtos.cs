@@ -71,4 +71,26 @@ namespace Kemora.Application.DTOs
         public DateTime VisitDate { get; set; }
         public string? Notes { get; set; }
     }
+
+    public class SaveAIPlanDto
+    {
+        [Required]
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public List<AIPlanActivityDto> Activities { get; set; } = [];
+    }
+
+    public class AIPlanActivityDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public string? Category { get; set; }
+        public string? ImageUrl { get; set; }
+        public DateTime VisitDate { get; set; }
+        public string? Notes { get; set; }
+    }
 }

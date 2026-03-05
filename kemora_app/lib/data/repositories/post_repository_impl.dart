@@ -3,6 +3,7 @@ import '../../core/error/failures.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/i_post_repository.dart';
 import '../datasources/post_remote_data_source.dart';
+import 'package:image_picker/image_picker.dart';
 
 class PostRepositoryImpl implements IPostRepository {
   final PostRemoteDataSource remoteDataSource;
@@ -22,9 +23,9 @@ class PostRepositoryImpl implements IPostRepository {
   }
 
   @override
-  Future<Either<Failure, Post>> createPost(String content, {String? imagePath, String? locationId}) async {
+  Future<Either<Failure, Post>> createPost(String content, {XFile? imageFile, String? locationId}) async {
     try {
-      final post = await remoteDataSource.createPost(content, imagePath: imagePath, locationId: locationId);
+      final post = await remoteDataSource.createPost(content, imageFile: imageFile, locationId: locationId);
       return Right(post);
     } on Failure catch (e) {
       return Left(e);
@@ -70,9 +71,9 @@ class PostRepositoryImpl implements IPostRepository {
   }
 
   @override
-  Future<Either<Failure, Comment>> addComment(String postId, String content) async {
+  Future<Either<Failure, Comment>> addComment(String postId, String content, {String? parentCommentId}) async {
     try {
-      final comment = await remoteDataSource.addComment(postId, content);
+      final comment = await remoteDataSource.addComment(postId, content, parentCommentId: parentCommentId);
       return Right(comment);
     } on Failure catch (e) {
       return Left(e);

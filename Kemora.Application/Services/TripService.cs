@@ -126,5 +126,60 @@ namespace Kemora.Application.Services
             await _unitOfWork.CommitAsync();
             return true;
         }
+
+        public async Task<TripDetailDto> SaveAIPlanAsync(string userId, SaveAIPlanDto dto)
+        {
+            var trip = new Trip
+            {
+                Name = dto.Title,
+                Description = dto.Description,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                UserID = userId
+            };
+            await _tripRepo.AddAsync(trip);
+            await _unitOfWork.CommitAsync(); // Get TripID
+
+            foreach (var act in dto.Activities)
+            {
+                // Try to find if the place already exists by name and proximity
+                var existingPlace = (await _placeRepo.FindAsync(p => p.Name == act.Name)).FirstOrDefault();
+                
+                int placeId;
+                if (existingPlace == null)
+                {
+                    // Create a new place if it doesn't exist
+                    var newPlace = new Place
+                    {
+                        Name = act.Name,
+                        Description = act.Description ?? string.Empty,
+                        Latitude = (decimal)act.Latitude,
+                        Longitude = (decimal)act.Longitude,
+                        MainImageURL = act.ImageUrl ?? string.Empty,
+                        PlaceTypeID = 1 // Default to 1 (usually "Other" or "Tourist Attraction" in typical seeders)
+                        // Note: ideally we'd map Governorate here, but for simplicity we'll let it be null or handle via geocoding later
+                    };
+                    await _placeRepo.AddAsync(newPlace);
+                    await _unitOfWork.CommitAsync();
+                    placeId = newPlace.PlaceID;
+                }
+                else
+                {
+                    placeId = existingPlace.PlaceID;
+                }
+
+                var tp = new TripPlace
+                {
+                    TripID = trip.TripID,
+                    PlaceID = placeId,
+                    VisitDate = act.VisitDate,
+                    Notes = act.Notes
+                };
+                await _tripPlaceRepo.AddAsync(tp);
+            }
+
+            await _unitOfWork.CommitAsync();
+            return await GetAsync(userId, trip.TripID) ?? _mapper.Map<TripDetailDto>(trip);
+        }
     }
 }

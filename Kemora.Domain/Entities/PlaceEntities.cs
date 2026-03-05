@@ -10,6 +10,7 @@ namespace Kemora.Domain.Entities
         public int GovernorateID { get; set; }
         public string Name { get; set; }
         public string Region { get; set; }
+        public string? ImageURL { get; set; }
         public ICollection<Place> Places { get; set; }
     }
 
@@ -39,8 +40,8 @@ namespace Kemora.Domain.Entities
         public int PlaceID { get; set; }
         public string? GooglePlaceID { get; set; }
         public string Name { get; set; }
-        public string Description { get; set; }
-        public string Address { get; set; }
+        public string? Description { get; set; }
+        public string? Address { get; set; }
 
         [Column(TypeName = "decimal(10, 8)")]
         public decimal Latitude { get; set; }
@@ -58,12 +59,12 @@ namespace Kemora.Domain.Entities
         public string? OpeningHoursJSON { get; set; }
         public string? MainImageURL { get; set; }
 
-        // Foreign Keys
-        public int GovernorateID { get; set; }
-        public Governorate Governorate { get; set; }
+        // Foreign Keys — nullable to support AI-generated places that may not have full metadata
+        public int? GovernorateID { get; set; }
+        public Governorate? Governorate { get; set; }
 
-        public int PlaceTypeID { get; set; }
-        public PlaceType PlaceType { get; set; }
+        public int? PlaceTypeID { get; set; }
+        public PlaceType? PlaceType { get; set; }
 
         // Relationships
         public ICollection<Photo> Photos { get; set; }

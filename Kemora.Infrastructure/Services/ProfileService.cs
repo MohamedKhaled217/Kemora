@@ -40,6 +40,7 @@ namespace Kemora.Infrastructure.Services
             if (user == null) return false;
 
             if (dto.FullName != null) user.FullName = dto.FullName;
+            if (dto.Bio != null) user.Bio = dto.Bio;
             await _userManager.UpdateAsync(user);
             return true;
         }

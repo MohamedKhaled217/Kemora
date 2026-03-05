@@ -125,5 +125,16 @@ namespace Kemora.Api.Controllers
             if (await _tripService.RemovePlaceAsync(UserId(), tripId, tpId)) return NoContent();
             return NotFound();
         }
+
+        /// <summary>
+        /// Save a complete AI-generated trip plan.
+        /// </summary>
+        [HttpPost("save-plan")]
+        [ProducesResponseType(typeof(TripDetailDto), StatusCodes.Status201Created)]
+        public async Task<ActionResult<TripDetailDto>> SavePlan([FromBody] SaveAIPlanDto dto)
+        {
+            var t = await _tripService.SaveAIPlanAsync(UserId(), dto);
+            return CreatedAtAction(nameof(Get), new { id = t.TripID }, t);
+        }
     }
 }
