@@ -20,21 +20,24 @@ class AIItineraryModel extends AIItinerary {
   }
 
   factory AIItineraryModel.fromString(String jsonString) {
-    try {
-      final Map<String, dynamic> decoded = json.decode(jsonString);
-      return AIItineraryModel.fromJson(decoded);
-    } catch (e) {
-      return const AIItineraryModel(title: 'Error Plan', duration: '', days: []);
-    }
+    final Map<String, dynamic> decoded = json.decode(jsonString);
+    return AIItineraryModel.fromJson(decoded);
   }
 }
 
 class TripDayModel extends TripDay {
-  const TripDayModel({required super.dayNumber, required super.activities});
+  const TripDayModel({
+    required super.dayNumber,
+    required super.activities,
+    super.dailySummary,
+    super.transportTips,
+  });
 
   factory TripDayModel.fromJson(Map<String, dynamic> json) {
     return TripDayModel(
       dayNumber: json['day'] as int? ?? 1,
+      dailySummary: json['daily_summary'] as String?,
+      transportTips: json['transport_tips'] as String?,
       activities: (json['activities'] as List<dynamic>?)
               ?.map((a) => ItineraryItemModel.fromJson(a as Map<String, dynamic>))
               .toList() ??
@@ -48,8 +51,10 @@ class ItineraryItemModel extends ItineraryItem {
     required super.name,
     required super.description,
     required super.timeOfDay,
+    super.suggestedHours,
     super.imageUrl,
     super.rating,
+    super.price,
     super.itineraryReview,
     super.latitude,
     super.longitude,
@@ -61,8 +66,10 @@ class ItineraryItemModel extends ItineraryItem {
       name: json['place'] as String? ?? (json['name'] as String? ?? 'Unknown Place'),
       description: json['description'] as String? ?? '',
       timeOfDay: json['time_slot'] as String? ?? (json['time_of_day'] as String? ?? 'Morning'),
+      suggestedHours: json['suggested_hours'] as String?,
       imageUrl: json['image_url'] as String?,
       rating: (json['rating'] as num?)?.toDouble(),
+      price: json['price'] as String?,
       itineraryReview: json['itinerary_review'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),

@@ -14,11 +14,11 @@ class PlaceModel extends Place {
 
   factory PlaceModel.fromJson(Map<String, dynamic> json) {
     return PlaceModel(
-      id: json['id']?.toString() ?? '',
+      id: json['placeID']?.toString() ?? '',
       name: json['name'] as String? ?? 'Unknown Place',
-      description: json['description'] as String? ?? '',
-      category: json['category'] as String? ?? 'Uncategorized',
-      imageUrl: json['imageUrl'] as String? ?? 'https://via.placeholder.com/150',
+      description: json['description'] as String? ?? json['address'] as String? ?? 'No description available.',
+      category: json['placeTypeName'] as String? ?? 'Uncategorized',
+      imageUrl: json['mainImageURL'] as String? ?? 'https://picsum.photos/400/300',
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
@@ -49,9 +49,9 @@ class GovernorateModel extends Governorate {
 
   factory GovernorateModel.fromJson(Map<String, dynamic> json) {
     return GovernorateModel(
-      id: json['id']?.toString() ?? '',
+      id: json['governorateID']?.toString() ?? '',
       name: json['name'] as String? ?? 'Unknown Governorate',
-      imageUrl: json['imageUrl'] as String?,
+      imageUrl: json['imageURL'] as String?,
       region: json['region'] as String?,
     );
   }

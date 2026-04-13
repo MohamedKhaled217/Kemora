@@ -95,7 +95,7 @@ builder.Services.AddScoped<Kemora.Domain.Interfaces.IUserRepository, Kemora.Infr
 
 // Application Services
 builder.Services.AddScoped<Kemora.Domain.Interfaces.ITokenService, Kemora.Infrastructure.Services.TokenService>();
-builder.Services.AddScoped<Kemora.Domain.Interfaces.IPlaceService, Kemora.Infrastructure.Services.OverpassPlacesService>();
+builder.Services.AddScoped<Kemora.Domain.Interfaces.IPlaceService, Kemora.Infrastructure.Services.GoogleMapsPlacesService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IAuthService, Kemora.Infrastructure.Services.AuthService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IBadgeService, Kemora.Application.Services.BadgeService>();
 builder.Services.AddScoped<Kemora.Application.Interfaces.IChatService, Kemora.Application.Services.ChatService>();
@@ -157,7 +157,6 @@ builder.Services.AddAutoMapper(cfg => {
     cfg.AddProfile<Kemora.Application.Mapping.MappingProfile>();
 });
 
-// Named HttpClient for OpenStreetMap Overpass API (free, no key required)
 builder.Services.AddHttpClient("Overpass", client =>
 {
     client.DefaultRequestHeaders.Accept.Add(
@@ -165,9 +164,18 @@ builder.Services.AddHttpClient("Overpass", client =>
     client.Timeout = TimeSpan.FromSeconds(60);
 });
 
-// Named HttpClient for local AI model (generous timeout for inference)
+// Named HttpClient for Google Maps API
+builder.Services.AddHttpClient("GoogleMaps", client =>
+{
+    client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// Named HttpClient for WisdomGate / OpenAI compatible API
 builder.Services.AddHttpClient("LocalAI", client =>
 {
+    client.BaseAddress = new Uri("https://wisdom-gate.juheapi.com/v1/");
     client.DefaultRequestHeaders.Accept.Add(
         new MediaTypeWithQualityHeaderValue("application/json"));
     client.Timeout = TimeSpan.FromMinutes(5);
@@ -307,7 +315,51 @@ using (var scope = app.Services.CreateScope())
 
     if (app.Environment.IsDevelopment())
     {
-        await DataSeeder.SeedAsync(scope.ServiceProvider);
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        
+        Log.Information("DATABASE RESET: Starting total system purge...");
+        
+        try 
+        {
+            // Social & Interactions
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM CommentReactions");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM PostReactions");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM CommentMedia");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Comments");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM PostMedia");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Posts");
+            
+            // Gamification
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM UserBadges");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM UserPoints");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Badges");
+            
+            // Trip Planning & Places
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM TripPlaces");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM UserFavorites");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Reviews");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Photos");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Events");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Places");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Trips");
+            
+            // Base Data
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM PlaceTypes");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Categories");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Governorates");
+            
+            Log.Information("DATABASE RESET: Purge complete. System is empty.");
+            
+            Log.Information("DATABASE RESET: Starting fresh system seeding...");
+            await DataSeeder.SeedAsync(scope.ServiceProvider);
+            
+            var placeCount = await context.Places.CountAsync();
+            Log.Information("DATABASE RESET: Seeding complete. Current Place count: {Count}", placeCount);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "DATABASE RESET: Critical error during total purge/seed");
+        }
     }
 }
 

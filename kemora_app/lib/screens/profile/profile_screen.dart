@@ -6,6 +6,7 @@ import '../../services/mock_data_service.dart';
 import 'widgets/achievement_card.dart';
 import '../../presentation/viewmodels/auth_view_model.dart';
 import '../../presentation/screens/profile/settings_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,7 +16,7 @@ class ProfileScreen extends StatelessWidget {
     final allAchievements = MockDataService.getAchievements();
     // Show only first 2 achievements
     final displayedAchievements = allAchievements.take(2).toList();
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final user = context.watch<AuthViewModel>().user;
 
     return Scaffold(
@@ -24,15 +25,54 @@ class ProfileScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 40),
             // User Header
-            CircleAvatar(
-              radius: 50,
-              backgroundImage: user?.profilePictureUrl != null 
-                ? NetworkImage(user!.profilePictureUrl!) 
-                : const NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'),
-              child: InkWell(
-                onTap: () {
-                  // TODO: Image Picker
-                },
+            GestureDetector(
+              onTap: () => context.read<AuthViewModel>().uploadProfilePicture(),
+              child: Stack(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: (user?.profilePictureUrl != null && user!.profilePictureUrl!.isNotEmpty)
+                        ? CachedNetworkImage(
+                            imageUrl: user.profilePictureUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.person, size: 50, color: Colors.grey),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.person, size: 50, color: Colors.grey),
+                          ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.orange,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -53,7 +93,7 @@ class ProfileScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    l10n.achievements,
+                    l10n?.achievements ?? 'Achievements',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -63,7 +103,7 @@ class ProfileScreen extends StatelessWidget {
                     onPressed: () {
                       _showAllAchievements(context, allAchievements);
                     },
-                    child: Text(l10n.seeAll),
+                    child: Text(l10n?.seeAll ?? 'See All'),
                   ),
                 ],
               ),
@@ -88,7 +128,7 @@ class ProfileScreen extends StatelessWidget {
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Text(
-                  l10n.settings,
+                  l10n?.settings ?? 'Settings',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -106,27 +146,31 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 child: ListTile(
                   leading: const Icon(Icons.language, color: Colors.orange),
-                  title: Text(l10n.language),
+                  title: Text(l10n?.language ?? 'Language'),
                   trailing: Consumer<AppProvider>(
                     builder: (context, provider, child) {
-                      return DropdownButton<Locale>(
-                        value: provider.currentLocale,
-                        underline: Container(),
-                        onChanged: (Locale? newLocale) {
-                          if (newLocale != null) {
-                            provider.changeLanguage(newLocale);
-                          }
-                        },
-                        items: const [
-                          DropdownMenuItem(
-                            value: Locale('en'),
-                            child: Text('English'),
-                          ),
-                          DropdownMenuItem(
-                            value: Locale('ar'),
-                            child: Text('العربية'),
-                          ),
-                        ],
+                      return SizedBox(
+                        width: 120, // constrain width for ListTile trailing
+                        child: DropdownButton<Locale>(
+                          isExpanded: true,
+                          value: provider.currentLocale,
+                          underline: Container(),
+                          onChanged: (Locale? newLocale) {
+                            if (newLocale != null) {
+                              provider.changeLanguage(newLocale);
+                            }
+                          },
+                          items: const [
+                            DropdownMenuItem(
+                              value: Locale('en'),
+                              child: Text('English'),
+                            ),
+                            DropdownMenuItem(
+                              value: Locale('ar'),
+                              child: Text('العربية'),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -200,7 +244,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  AppLocalizations.of(context)!.achievements, // Replaced title
+                  AppLocalizations.of(context)?.achievements ?? 'Achievements',
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,

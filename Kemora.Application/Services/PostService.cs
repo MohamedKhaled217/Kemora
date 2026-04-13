@@ -121,17 +121,18 @@ namespace Kemora.Application.Services
 
         public async Task<bool> ToggleLikeAsync(int postId, string userId)
         {
-            var post = await _postRepo.GetByIdWithDetailsAsync(postId);
-            if (post == null) return false;
+            if (!await _postRepo.ExistsAsync(postId)) return false;
 
-            var existingReaction = post.Reactions.FirstOrDefault(r => r.UserID == userId && r.ReactionType == "Like");
+            var reactionRepo = _unitOfWork.Repository<PostReaction>();
+            var existingReaction = await reactionRepo.FirstOrDefaultAsync(r => r.PostID == postId && r.UserID == userId && r.ReactionType == "Like");
+            
             if (existingReaction != null)
             {
-                post.Reactions.Remove(existingReaction);
+                reactionRepo.Remove(existingReaction);
             }
             else
             {
-                post.Reactions.Add(new PostReaction
+                await reactionRepo.AddAsync(new PostReaction
                 {
                     PostID = postId,
                     UserID = userId,

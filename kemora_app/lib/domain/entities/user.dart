@@ -26,6 +26,32 @@ class User extends Equatable {
     this.preferences,
   });
 
+  User copyWith({
+    String? id,
+    String? email,
+    String? fullName,
+    String? profilePictureUrl,
+    String? country,
+    String? bio,
+    String? token,
+    String? refreshToken,
+    int? earnedBadgesCount,
+    UserPreferences? preferences,
+  }) {
+    return User(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      fullName: fullName ?? this.fullName,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
+      country: country ?? this.country,
+      bio: bio ?? this.bio,
+      token: token ?? this.token,
+      refreshToken: refreshToken ?? this.refreshToken,
+      earnedBadgesCount: earnedBadgesCount ?? this.earnedBadgesCount,
+      preferences: preferences ?? this.preferences,
+    );
+  }
+
   @override
   List<Object?> get props => [
         id,
@@ -40,3 +66,4 @@ class User extends Equatable {
         preferences,
       ];
 }
+

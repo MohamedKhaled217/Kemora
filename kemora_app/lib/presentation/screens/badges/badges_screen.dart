@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../domain/entities/badge.dart' as entity;
 import '../../viewmodels/badge_view_model.dart';
 // inline points display
@@ -214,13 +215,12 @@ class _BadgesScreenState extends State<BadgesScreen> {
                   child: Container(
                     width: 72,
                     height: 72,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isEarned ? const Color(0xFFC5A358).withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                     ),
-                    child: badge.iconUrl.isNotEmpty
-                      ? ClipOval(child: Image.network(badge.iconUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _fallbackIcon(isEarned)))
-                      : _fallbackIcon(isEarned),
+                    child: _buildBadgeIcon(badge, isEarned),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -245,13 +245,9 @@ class _BadgesScreenState extends State<BadgesScreen> {
                     fontWeight: isEarned ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
-                if (!isEarned && progress != null) ...[ // Generic progress example
+                if (!isEarned) ...[
                   const Spacer(),
-                  LinearProgressIndicator(
-                    value: 0.3, // Mock percentage
-                    backgroundColor: Colors.grey[200],
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC5A358)),
-                  ),
+                  _buildProgressBar(badge),
                 ]
               ],
             ),
@@ -271,6 +267,52 @@ class _BadgesScreenState extends State<BadgesScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBadgeIcon(entity.Badge badge, bool isEarned) {
+    if (badge.iconUrl.isEmpty) return _fallbackIcon(isEarned);
+
+    // Check if it's a single emoji (typical for seeded badges)
+    final isEmoji = badge.iconUrl.length <= 4 && !badge.iconUrl.contains('http');
+
+    if (isEmoji) {
+      return Text(
+        badge.iconUrl,
+        style: TextStyle(fontSize: 40, color: isEarned ? null : Colors.grey),
+      );
+    }
+
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: badge.iconUrl,
+        fit: BoxFit.cover,
+        errorWidget: (_, __, ___) => _fallbackIcon(isEarned),
+      ),
+    );
+  }
+
+  Widget _buildProgressBar(entity.Badge badge) {
+    // Basic mock progress based on badge requirements
+    double progress = 0.2; // Default
+    if (badge.name.contains('Reviewer')) progress = 0.4;
+    if (badge.name.contains('Social')) progress = 0.1;
+    if (badge.name.contains('Lover')) progress = 0.6;
+
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.grey[200],
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC5A358)),
+            minHeight: 4,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text('${(progress * 100).toInt()}% progress', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+      ],
     );
   }
 

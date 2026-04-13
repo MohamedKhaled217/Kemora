@@ -8,8 +8,11 @@ import '../../domain/usecases/google_login_usecase.dart';
 import '../../domain/usecases/update_preferences_usecase.dart';
 import '../../domain/usecases/change_password_usecase.dart';
 import '../../domain/usecases/change_email_usecase.dart';
+import '../../domain/usecases/update_profile_usecase.dart';
+import '../../domain/usecases/upload_profile_picture_usecase.dart';
 import '../../domain/entities/user_preferences.dart';
 import '../../core/auth/token_storage.dart';
+import 'package:image_picker/image_picker.dart';
 
 enum AuthState { initial, loading, authenticated, unauthenticated, error }
 
@@ -20,6 +23,8 @@ class AuthViewModel extends ChangeNotifier {
   final UpdatePreferencesUseCase updatePreferencesUseCase;
   final ChangePasswordUseCase changePasswordUseCase;
   final ChangeEmailUseCase changeEmailUseCase;
+  final UpdateProfileUseCase updateProfileUseCase;
+  final UploadProfilePictureUseCase uploadProfilePictureUseCase;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
@@ -32,6 +37,8 @@ class AuthViewModel extends ChangeNotifier {
     required this.updatePreferencesUseCase,
     required this.changePasswordUseCase,
     required this.changeEmailUseCase,
+    required this.updateProfileUseCase,
+    required this.uploadProfilePictureUseCase,
   });
 
   AuthState _state = AuthState.initial;
@@ -208,5 +215,60 @@ class AuthViewModel extends ChangeNotifier {
     _googleSignIn.signOut();
     _state = AuthState.unauthenticated;
     notifyListeners();
+  }
+
+  Future<void> updateProfile(String fullName, String? bio) async {
+    _state = AuthState.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await updateProfileUseCase(fullName, bio);
+
+    result.fold(
+      (failure) {
+        _state = AuthState.error;
+        _errorMessage = failure.message;
+        notifyListeners();
+      },
+      (updatedUser) {
+        // Merge updated fields into existing user
+        if (_user != null) {
+          _user = _user!.copyWith(
+            fullName: updatedUser.fullName,
+            bio: updatedUser.bio,
+          );
+        }
+        _state = AuthState.authenticated;
+        notifyListeners();
+      },
+    );
+  }
+
+  Future<void> uploadProfilePicture() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image == null) return;
+
+    _state = AuthState.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await uploadProfilePictureUseCase(image.path);
+
+    result.fold(
+      (failure) {
+        _state = AuthState.error;
+        _errorMessage = failure.message;
+        notifyListeners();
+      },
+      (imageUrl) {
+        if (_user != null) {
+          _user = _user!.copyWith(profilePictureUrl: imageUrl);
+        }
+        _state = AuthState.authenticated;
+        notifyListeners();
+      },
+    );
   }
 }

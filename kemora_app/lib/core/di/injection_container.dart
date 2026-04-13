@@ -23,6 +23,8 @@ import '../../domain/usecases/google_login_usecase.dart';
 import '../../domain/usecases/update_preferences_usecase.dart';
 import '../../domain/usecases/change_password_usecase.dart';
 import '../../domain/usecases/change_email_usecase.dart';
+import '../../domain/usecases/update_profile_usecase.dart';
+import '../../domain/usecases/upload_profile_picture_usecase.dart';
 import '../../domain/usecases/get_places_usecase.dart';
 import '../../domain/usecases/explore_usecases.dart';
 import '../../domain/usecases/trip_usecases.dart';
@@ -55,6 +57,8 @@ Future<void> init() async {
         updatePreferencesUseCase: sl(),
         changePasswordUseCase: sl(),
         changeEmailUseCase: sl(),
+        updateProfileUseCase: sl(),
+        uploadProfilePictureUseCase: sl(),
       ));
 
   // Use Cases
@@ -64,6 +68,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UpdatePreferencesUseCase(repository: sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
   sl.registerLazySingleton(() => ChangeEmailUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
+  sl.registerLazySingleton(() => UploadProfilePictureUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<IAuthRepository>(
@@ -199,8 +205,8 @@ Future<void> init() async {
     final dio = Dio(
       BaseOptions(
         baseUrl: 'http://localhost:5299', // HTTP for Chrome Web (avoids self-signed cert issues); HTTPS 7210 for production
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 300), // Increased to 5 minutes (300s) for extremely long AI tasks like trip generation
         headers: {'Content-Type': 'application/json'},
       ),
     );

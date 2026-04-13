@@ -72,7 +72,9 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<void> likePost(String postId) async {
     try {
       final response = await dio.post('/api/v1/posts/$postId/like');
-      if (response.statusCode != 200) throw const ServerFailure('Failed to like post');
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw const ServerFailure('Failed to like post');
+      }
     } on DioException catch (e) {
       throw ServerFailure(e.response?.data['message'] ?? 'Server Error');
     }

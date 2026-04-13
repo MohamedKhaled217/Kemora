@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/city.dart';
-import '../../services/mock_data_service.dart';
-import '../../services/ai_trip_service.dart';
+import '../../domain/entities/trip_plan_request.dart';
+import '../../domain/enums/tourism_type.dart';
+import '../../presentation/viewmodels/trip_view_model.dart';
+import '../../presentation/viewmodels/places_view_model.dart';
+import '../../core/theme/app_theme.dart';
 
 class AiFormScreen extends StatefulWidget {
   const AiFormScreen({super.key});
@@ -12,71 +15,47 @@ class AiFormScreen extends StatefulWidget {
 }
 
 class _AiFormScreenState extends State<AiFormScreen> {
-  // Form State
-  String? _selectedCityId;
-  String _selectedBudget = 'Standard';
-  double _duration = 3.0; // Days
-  final List<String> _selectedInterests = [];
+  String? _selectedGovernorate;
+  String _selectedBudget = 'Mid-Range';
+  double _duration = 3.0;
+  final List<TourismType> _selectedInterests = [];
 
-  final List<String> _budgets = ['Budget', 'Standard', 'Luxury'];
-  final List<String> _interests = [
-    'History',
-    'Food',
-    'Nature',
-    'Shopping',
-    'Relaxation',
-    'Nightlife',
-  ];
-
-  late List<City> _availableCities;
-  bool _isLoading = false;
-
+  final List<String> _budgets = ['Budget', 'Mid-Range', 'Luxury'];
+  
   @override
   void initState() {
     super.initState();
-    // For demo, just picking Egypt's cities
-    final country = MockDataService.getCountries().firstWhere(
-      (c) => c.name == 'Egypt',
-    );
-    _availableCities = country.cities;
-    if (_availableCities.isNotEmpty) {
-      _selectedCityId = _availableCities.first.id;
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PlacesViewModel>().getGovernorates();
+    });
   }
 
   Future<void> _generatePlan() async {
-    if (_selectedCityId == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final cityName = _availableCities
-        .firstWhere((c) => c.id == _selectedCityId)
-        .name;
-
-    try {
-      final tripPlan = await AiTripService.generateTrip(
-        destination: cityName,
-        days: _duration.round(),
-        budget: _selectedBudget,
-        interests: _selectedInterests,
+    if (_selectedGovernorate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a destination')),
       );
+      return;
+    }
 
-      if (mounted) {
-        context.push('/map/ai-planner/result', extra: tripPlan);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to generate plan: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+    final request = TripPlanRequest(
+      location: _selectedGovernorate!,
+      durationDays: _duration.round(),
+      budget: _selectedBudget,
+      interests: _selectedInterests,
+      preferences: "A premium cultural and comfortable experience",
+    );
+
+    final tripVM = context.read<TripViewModel>();
+    await tripVM.generateAiItinerary(request);
+
+    if (mounted) {
+      if (tripVM.state == TripState.loaded && tripVM.currentPlan != null) {
+        context.push('/map/ai-planner/result', extra: tripVM.currentPlan);
+      } else if (tripVM.state == TripState.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tripVM.errorMessage ?? 'Failed to generate plan')),
+        );
       }
     }
   }
@@ -84,204 +63,141 @@ class _AiFormScreenState extends State<AiFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('AI Trip Planner'),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.pop(),
-        ),
-        titleTextStyle: const TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-        ),
+        backgroundColor: AppTheme.primaryBlue,
+        foregroundColor: AppTheme.primarySand,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            const Center(
-              child: Icon(
-                Icons.auto_awesome,
-                size: 60,
-                color: Colors.deepPurple,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Tell us your preferences, and we'll craft the perfect trip for you.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-            const SizedBox(height: 32),
+      body: Consumer<PlacesViewModel>(
+        builder: (context, placesVM, child) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Center(
+                  child: Icon(Icons.auto_awesome, size: 64, color: AppTheme.primaryGold),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Design Your Elite Egyptian Experience",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                const SizedBox(height: 32),
 
-            // Destination Dropdown
-            _buildSectionLabel("Where do you want to go?"),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedCityId,
-                  isExpanded: true,
-                  items: _availableCities.map((city) {
-                    return DropdownMenuItem(
-                      value: city.id,
-                      child: Text(city.name),
+                // Destination
+                _buildLabel("Destination Governorate"),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primarySand),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedGovernorate,
+                      isExpanded: true,
+                      hint: const Text("Select a governorate"),
+                      items: placesVM.governorates.map((gov) {
+                        return DropdownMenuItem(
+                          value: gov.name,
+                          child: Text(gov.name),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setState(() => _selectedGovernorate = val),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Duration
+                _buildLabel("Duration: ${_duration.round()} Days"),
+                Slider(
+                  value: _duration,
+                  min: 1,
+                  max: 7,
+                  divisions: 6,
+                  activeColor: AppTheme.primaryGold,
+                  inactiveColor: AppTheme.primarySand,
+                  onChanged: (val) => setState(() => _duration = val),
+                ),
+                const SizedBox(height: 24),
+
+                // Budget
+                _buildLabel("Budget Tier"),
+                Wrap(
+                  spacing: 12,
+                  children: _budgets.map((b) {
+                    final sel = _selectedBudget == b;
+                    return ChoiceChip(
+                      label: Text(b),
+                      selected: sel,
+                      selectedColor: AppTheme.primaryGold.withValues(alpha: 0.2),
+                      onSelected: (s) => setState(() => _selectedBudget = b),
                     );
                   }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedCityId = val;
-                    });
+                ),
+                const SizedBox(height: 24),
+
+                // Interests
+                _buildLabel("Interests"),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: TourismType.values.map((type) {
+                    final sel = _selectedInterests.contains(type);
+                    return FilterChip(
+                      label: Text(type.toString().split('.').last),
+                      selected: sel,
+                      selectedColor: AppTheme.accentOasis.withValues(alpha: 0.2),
+                      onSelected: (s) {
+                        setState(() {
+                          s ? _selectedInterests.add(type) : _selectedInterests.remove(type);
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                
+                const SizedBox(height: 48),
+
+                Consumer<TripViewModel>(
+                  builder: (context, tripVM, _) {
+                    final isLoading = tripVM.state == TripState.loading;
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : _generatePlan,
+                        child: isLoading 
+                          ? const CircularProgressIndicator(color: AppTheme.primaryBlue)
+                          : const Text("GENERATE PREMIUM ITINERARY"),
+                      ),
+                    );
                   },
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Duration Slider
-            _buildSectionLabel("How long is your trip? (Days)"),
-            Row(
-              children: [
-                Text("1 Day", style: TextStyle(color: Colors.grey[600])),
-                Expanded(
-                  child: Slider(
-                    value: _duration,
-                    min: 1,
-                    max: 14,
-                    divisions: 13,
-                    label: "${_duration.round()} Days",
-                    activeColor: Colors.deepPurple,
-                    onChanged: (val) {
-                      setState(() {
-                        _duration = val;
-                      });
-                    },
-                  ),
-                ),
-                Text("14 Days", style: TextStyle(color: Colors.grey[600])),
               ],
             ),
-            Center(
-              child: Text(
-                "${_duration.round()} Days",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.deepPurple,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Budget Segmented
-            _buildSectionLabel("What is your budget?"),
-            Wrap(
-              spacing: 12,
-              children: _budgets.map((budget) {
-                final isSelected = _selectedBudget == budget;
-                return ChoiceChip(
-                  label: Text(budget),
-                  selected: isSelected,
-                  selectedColor: Colors.deepPurple.withOpacity(0.2),
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.deepPurple : Colors.black87,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() {
-                        _selectedBudget = budget;
-                      });
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-
-            // Interests Multi-select
-            _buildSectionLabel("What are you interested in?"),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _interests.map((interest) {
-                final isSelected = _selectedInterests.contains(interest);
-                return FilterChip(
-                  label: Text(interest),
-                  selected: isSelected,
-                  selectedColor: Colors.deepPurple.withOpacity(0.2),
-                  checkmarkColor: Colors.deepPurple,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.deepPurple : Colors.black87,
-                  ),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedInterests.add(interest);
-                      } else {
-                        _selectedInterests.remove(interest);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 40),
-
-            // Submit Button
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _generatePlan,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 5,
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Generate My Trip",
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSectionLabel(String label) {
+  Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
-        label,
+        text,
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: AppTheme.primaryBlue,
         ),
       ),
     );

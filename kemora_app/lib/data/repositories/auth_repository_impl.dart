@@ -93,4 +93,28 @@ class AuthRepositoryImpl implements IAuthRepository {
       return Left(ServerFailure('Connection Error: ${e.toString()}'));
     }
   }
+
+  @override
+  Future<Either<Failure, User>> updateProfile(String fullName, String? bio) async {
+    try {
+      final user = await remoteDataSource.updateProfile(fullName, bio);
+      return Right(user);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure('Connection Error: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadProfilePicture(String filePath) async {
+    try {
+      final url = await remoteDataSource.uploadProfilePicture(filePath);
+      return Right(url);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure('Connection Error: ${e.toString()}'));
+    }
+  }
 }

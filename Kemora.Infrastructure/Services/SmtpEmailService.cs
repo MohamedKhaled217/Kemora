@@ -28,7 +28,8 @@ namespace Kemora.Infrastructure.Services
                 email.To.Add(MailboxAddress.Parse(to));
                 email.Subject = subject;
 
-                var builder = new BodyBuilder { HtmlBody = body, TextBody = body };
+                var plainText = System.Text.RegularExpressions.Regex.Replace(body, "<.*?>", string.Empty);
+                var builder = new BodyBuilder { HtmlBody = body, TextBody = plainText };
                 email.Body = builder.ToMessageBody();
 
                 using var smtp = new SmtpClient();

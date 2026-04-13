@@ -56,7 +56,7 @@ namespace Kemora.Infrastructure.Repositories
         {
             return await _dbSet
                 .Include(p => p.Governorate)
-                .Include(p => p.PlaceType)
+                .Include(p => p.PlaceType).ThenInclude(pt => pt.Category)
                 .OrderByDescending(p => p.Rating)
                 .Take(count)
                 .ToListAsync();

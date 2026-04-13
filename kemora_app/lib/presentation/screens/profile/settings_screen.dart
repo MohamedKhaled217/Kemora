@@ -16,9 +16,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   
-  // Future fields for Profile updates (Name, Bio)
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final user = context.read<AuthViewModel>().user;
+    _nameController.text = user?.fullName ?? '';
+    _bioController.text = user?.bio ?? '';
+  }
 
   @override
   void dispose() {
@@ -66,6 +73,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _showSuccess('Password changed successfully!');
       _currentPasswordController.clear();
       _newPasswordController.clear();
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    if (_nameController.text.isEmpty) {
+      _showError('Full name cannot be empty');
+      return;
+    }
+
+    final authVM = context.read<AuthViewModel>();
+    await authVM.updateProfile(_nameController.text, _bioController.text);
+
+    if (authVM.state == AuthState.error) {
+      _showError(authVM.errorMessage ?? 'Failed to update profile');
+    } else {
+      _showSuccess('Profile updated successfully!');
     }
   }
 
@@ -117,9 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () {
-                            _showSuccess('Profile update has not been fully implemented in the frontend yet.');
-                          },
+                          onPressed: _updateProfile,
                           child: const Text('Save Profile'),
                         )
                       ],

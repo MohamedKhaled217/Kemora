@@ -14,9 +14,7 @@ import '../../screens/common/scaffold_with_navbar.dart';
 import '../../screens/map/egypt_map_screen.dart';
 import '../../screens/community/community_screen.dart';
 import '../../screens/profile/profile_screen.dart';
-import '../../screens/ai_planner/ai_form_screen.dart';
-import '../../screens/ai_planner/ai_result_screen.dart';
-import '../../models/ai_plan.dart';
+import '../../domain/entities/ai_itinerary.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
@@ -45,8 +43,8 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: 'result',
                   builder: (context, state) {
-                    final plan = state.extra as TripPlan;
-                    return AiResultScreen(tripPlan: plan);
+                    final plan = state.extra as AIItinerary;
+                    return AiResultScreen(itinerary: plan);
                   },
                 ),
               ],

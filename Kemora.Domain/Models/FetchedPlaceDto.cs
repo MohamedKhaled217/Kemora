@@ -6,6 +6,7 @@ namespace Kemora.Domain.Models
     /// </summary>
     public class FetchedPlaceDto
     {
+        public string? GooglePlaceId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public List<string> Types { get; set; } = [];

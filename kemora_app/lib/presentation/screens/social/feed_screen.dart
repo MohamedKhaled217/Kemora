@@ -9,6 +9,7 @@ import '../../viewmodels/post_view_model.dart';
 import '../../viewmodels/trip_view_model.dart';
 import 'chat_list_screen.dart';
 import 'post_detail_screen.dart';
+import '../profile/public_profile_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -259,12 +260,22 @@ class _FeedScreenState extends State<FeedScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
             ListTile(
-              leading: CircleAvatar(
-                backgroundImage: NetworkImage(post.authorProfilePicture),
-                onBackgroundImageError: (_, __) {},
-                child: post.authorProfilePicture.isEmpty
-                    ? Text(post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?')
-                    : null,
+              leading: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => PublicProfileScreen(
+                    userId: post.authorId,
+                    userName: post.authorName,
+                    profilePictureUrl: post.authorProfilePicture,
+                  )),
+                ),
+                child: CircleAvatar(
+                  backgroundImage: NetworkImage(post.authorProfilePicture),
+                  onBackgroundImageError: (_, __) {},
+                  child: post.authorProfilePicture.isEmpty
+                      ? Text(post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?')
+                      : null,
+                ),
               ),
               title: Text(post.authorName, style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(timeago.format(post.createdAt)),

@@ -11,6 +11,8 @@ import 'presentation/viewmodels/places_view_model.dart';
 import 'presentation/viewmodels/post_view_model.dart';
 import 'presentation/viewmodels/trip_view_model.dart';
 import 'presentation/viewmodels/chat_view_model.dart';
+import 'providers/app_provider.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,7 @@ class KemoraApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => di.sl<PostViewModel>()),
         ChangeNotifierProvider(create: (context) => di.sl<BadgeViewModel>()),
         ChangeNotifierProvider(create: (context) => di.sl<ChatViewModel>()),
+        ChangeNotifierProvider(create: (context) => AppProvider()),
       ],
       child: MaterialApp(
         title: 'Kemora Travel Guide',
@@ -40,6 +43,7 @@ class KemoraApp extends StatelessWidget {
         // GoRouter can be implemented later when adding bottom nav and other routes.
         home: const LoginScreen(),
         localizationsDelegates: const [
+          AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,

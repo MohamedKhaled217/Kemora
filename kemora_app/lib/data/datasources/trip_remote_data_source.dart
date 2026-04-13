@@ -100,7 +100,11 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
       if (response.statusCode == 200) {
         final String? tripPlanJson = response.data['tripPlan'];
         if (tripPlanJson != null && tripPlanJson.isNotEmpty) {
-          return AIItineraryModel.fromString(tripPlanJson);
+          try {
+            return AIItineraryModel.fromString(tripPlanJson);
+          } catch (e) {
+            throw const ServerFailure('AI generated an incomplete plan. Please try again.');
+          }
         }
         return const AIItinerary(title: 'Empty Plan', duration: '0 days', days: []);
       } else {

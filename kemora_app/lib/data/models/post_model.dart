@@ -19,7 +19,7 @@ class CommentModel extends Comment {
       postId: postId,
       authorId: json['authorId']?.toString() ?? '',
       authorName: json['authorName'] as String? ?? 'Unknown User',
-      authorProfilePicture: json['authorProfilePicture'] as String? ?? 'https://via.placeholder.com/150',
+      authorProfilePicture: json['authorProfilePicture'] as String? ?? 'https://picsum.photos/150',
       content: json['content'] as String? ?? '',
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
       parentCommentId: json['parentCommentId']?.toString(),
@@ -57,7 +57,7 @@ class PostModel extends Post {
       id: json['postID']?.toString() ?? '',
       authorId: json['authorId']?.toString() ?? '',
       authorName: json['authorName'] as String? ?? 'Unknown Author',
-      authorProfilePicture: json['authorProfilePicture'] as String? ?? 'https://via.placeholder.com/150',
+      authorProfilePicture: json['authorProfilePicture'] as String? ?? 'https://picsum.photos/150',
       content: json['content'] as String? ?? '',
       imageUrl: imageUrl,
       locationId: json['linkedTripId']?.toString(), // Example mapping

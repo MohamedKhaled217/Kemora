@@ -10,6 +10,8 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> updatePreferences(UserPreferences preferences);
   Future<void> changePassword(String currentPassword, String newPassword);
   Future<void> changeEmail(String newEmail, String password);
+  Future<UserModel> updateProfile(String fullName, String? bio);
+  Future<String> uploadProfilePicture(String filePath);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -132,6 +134,50 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw ServerFailure(_extractError(e, 'Failed to change email.'));
     } catch (e) {
       throw ServerFailure('An unexpected error occurred: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<UserModel> updateProfile(String fullName, String? bio) async {
+    try {
+      final response = await dio.put(
+        '/api/v1/profile/my',
+        data: {
+          'fullName': fullName,
+          'bio': bio,
+        },
+      );
+      // Backend returns 204 No Content usually. We need to fetch the updated user or assume success.
+      // ProfileController returns NoContent() on success.
+      if (response.statusCode == 204) {
+        // Return a dummy Model, the UI should ideally refresh or we merge state.
+        return UserModel(fullName: fullName, bio: bio, id: '', email: '');
+      }
+      throw const ServerFailure('Failed to update profile.');
+    } on DioException catch (e) {
+      throw ServerFailure(_extractError(e, 'Failed to update profile.'));
+    }
+  }
+
+  @override
+  Future<String> uploadProfilePicture(String filePath) async {
+    try {
+      final fileName = filePath.split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+
+      final response = await dio.post(
+        '/api/v1/profile/image',
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['profilePictureUrl'] as String;
+      }
+      throw const ServerFailure('Failed to upload profile picture.');
+    } on DioException catch (e) {
+      throw ServerFailure(_extractError(e, 'Failed to upload profile picture.'));
     }
   }
 }

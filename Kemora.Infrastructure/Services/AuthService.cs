@@ -212,7 +212,7 @@ namespace Kemora.Infrastructure.Services
             var baseUrl = _configuration["BaseUrl"] ?? "https://localhost:7210";
             var encodedToken = Uri.EscapeDataString(token);
             var encodedEmail = Uri.EscapeDataString(email);
-            var resetLink = $"{baseUrl}/api/v1/auth/reset-password?email={encodedEmail}&token={encodedToken}";
+            var resetLink = $"{baseUrl}/api/v1/auth/reset-password-redirect?email={encodedEmail}&token={encodedToken}";
 
             await _emailService.SendEmailAsync(email, "Reset Your Kemora Password",
                 GetHtmlPasswordResetEmail(user.FullName, resetLink));

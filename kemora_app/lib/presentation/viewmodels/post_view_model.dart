@@ -45,7 +45,7 @@ class PostViewModel extends ChangeNotifier {
         notifyListeners();
       },
       (postsList) {
-        _posts = postsList;
+        _posts = List<Post>.from(postsList);
         _state = PostState.loaded;
         notifyListeners();
       },
@@ -60,8 +60,8 @@ class PostViewModel extends ChangeNotifier {
     final originalPost = _posts[index];
     final isLiked = originalPost.isLikedByMe;
 
-    // Optimistic UI update
-    _posts[index] = Post(
+    final newList = List<Post>.from(_posts);
+    newList[index] = Post(
       id: originalPost.id,
       authorId: originalPost.authorId,
       authorName: originalPost.authorName,
@@ -77,6 +77,7 @@ class PostViewModel extends ChangeNotifier {
       recommendedTripId: originalPost.recommendedTripId,
       recommendedTripTitle: originalPost.recommendedTripTitle,
     );
+    _posts = newList;
     notifyListeners();
 
     final result = await toggleLikeUseCase(postId);
@@ -85,7 +86,9 @@ class PostViewModel extends ChangeNotifier {
         // Rollback gracefully on failure
         final currentIndex = _posts.indexWhere((p) => p.id == postId);
         if (currentIndex != -1) {
-          _posts[currentIndex] = originalPost;
+          final revertedList = List<Post>.from(_posts);
+          revertedList[currentIndex] = originalPost;
+          _posts = revertedList;
         }
         _errorMessage = failure.message;
         debugPrint('Like POST error (DioException handled): ${failure.message}');
@@ -148,7 +151,8 @@ class PostViewModel extends ChangeNotifier {
         final index = _posts.indexWhere((p) => p.id == postId);
         if (index != -1) {
           final post = _posts[index];
-          _posts[index] = Post(
+          final newList = List<Post>.from(_posts);
+          newList[index] = Post(
             id: post.id,
             authorId: post.authorId,
             authorName: post.authorName,
@@ -164,6 +168,7 @@ class PostViewModel extends ChangeNotifier {
             recommendedTripId: post.recommendedTripId,
             recommendedTripTitle: post.recommendedTripTitle,
           );
+          _posts = newList;
         }
         notifyListeners();
       },
@@ -201,7 +206,8 @@ class PostViewModel extends ChangeNotifier {
           recommendedTripId: recommendedTripId,
           recommendedTripTitle: recommendedTripTitle,
         );
-        _posts.insert(0, finalPost); 
+        
+        _posts = List<Post>.from(_posts)..insert(0, finalPost);
         _state = PostState.loaded;
         notifyListeners();
       },

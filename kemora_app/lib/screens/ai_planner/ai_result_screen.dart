@@ -1,330 +1,156 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/ai_plan.dart';
+import 'package:provider/provider.dart';
+import '../../domain/entities/ai_itinerary.dart';
+import '../../presentation/viewmodels/trip_view_model.dart';
+import '../../presentation/widgets/itinerary_widgets.dart';
+import '../../core/theme/app_theme.dart';
 
 class AiResultScreen extends StatelessWidget {
-  final TripPlan tripPlan;
+  final AIItinerary itinerary;
 
-  const AiResultScreen({super.key, required this.tripPlan});
+  const AiResultScreen({super.key, required this.itinerary});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: Text('Your ${tripPlan.destination} Plan'),
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.pop(),
-        ),
-        titleTextStyle: const TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-        ),
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Hotel Card
-            _buildHotelCard(context),
-            const SizedBox(height: 24),
-
-            // Stats Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStat(
-                  Icons.calendar_today,
-                  "${tripPlan.dailyItinerary.length} Days",
-                  "Duration",
-                ),
-                _buildStat(
-                  Icons.attach_money,
-                  "\$${tripPlan.estimatedCost.toInt()}",
-                  "Est. Cost",
-                ),
-                _buildStat(Icons.star, "${tripPlan.hotelRating}", "Rating"),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Itinerary Header
-            const Text(
-              "Your Itinerary",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            // Days List
-            ...tripPlan.dailyItinerary.map(
-              (day) => _buildDaySection(context, day),
-            ),
-
-            // Safe Area Spacer
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHotelCard(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: Image.network(
-              tripPlan.hotelImageUrl,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (ctx, err, stack) => Container(
-                height: 200,
-                color: Colors.grey[300],
-                child: const Center(
-                  child: Icon(Icons.hotel, size: 50, color: Colors.grey),
+      backgroundColor: AppTheme.backgroundColor,
+      body: CustomScrollView(
+        slivers: [
+          // Premium Hero Header
+          SliverAppBar(
+            expandedHeight: 200,
+            pinned: true,
+            stretch: true,
+            backgroundColor: AppTheme.primaryBlue,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                itinerary.title,
+                style: const TextStyle(
+                  color: AppTheme.primarySand,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  shadows: [Shadow(color: Colors.black45, blurRadius: 10)],
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        "Recommended Hotel",
-                        style: TextStyle(
-                          color: Colors.deepPurple,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    const Icon(Icons.star, color: Colors.amber, size: 18),
-                    const SizedBox(width: 4),
-                    Text(
-                      tripPlan.hotelRating.toString(),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  tripPlan.hotelName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      tripPlan.destination,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStat(IconData icon, String value, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, color: Colors.deepPurple),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-      ],
-    );
-  }
-
-  Widget _buildDaySection(BuildContext context, DayPlan day) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  "Day ${day.dayNumber}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
-            ],
-          ),
-        ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: day.activities.length,
-          itemBuilder: (context, index) {
-            final activity = day.activities[index];
-            final isLast = index == day.activities.length - 1;
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              background: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // Timeline column
-                  Column(
-                    children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _getActivityColor(activity.type),
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _getActivityColor(
-                                activity.type,
-                              ).withOpacity(0.4),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (!isLast)
-                        Expanded(
-                          child: Container(
-                            width: 2,
-                            color: Colors.grey[200],
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                          ),
-                        ),
-                    ],
+                   // Generic Egypt backdrop if destination image not available at top level
+                  Image.network(
+                    "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?auto=format&fit=crop&w=1200",
+                    fit: BoxFit.cover,
                   ),
-                  const SizedBox(width: 16),
-                  // Content
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.time,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            activity.title,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            activity.description,
-                            style: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
-                          ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          AppTheme.primaryBlue.withValues(alpha: 0.8),
                         ],
                       ),
                     ),
                   ),
                 ],
               ),
-            );
-          },
-        ),
-      ],
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.save_outlined),
+                onPressed: () => _showSaveDialog(context),
+              ),
+            ],
+          ),
+
+          // Content List
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final day = itinerary.days[index];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DayHeader(day: day),
+                      const SizedBox(height: 24),
+                      ...day.activities.asMap().entries.map((entry) {
+                        return ActivityTimelineTile(
+                          activity: entry.value,
+                          isLast: entry.key == day.activities.length - 1,
+                        );
+                      }),
+                      const SizedBox(height: 32),
+                    ],
+                  );
+                },
+                childCount: itinerary.days.length,
+              ),
+            ),
+          ),
+          
+          // Bottom CTA
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: ElevatedButton(
+                onPressed: () => _showSaveDialog(context),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                ),
+                child: const Text("CUSTOMIZE & SAVE PLAN"),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Color _getActivityColor(ActivityType type) {
-    switch (type) {
-      case ActivityType.hotel:
-        return Colors.blue;
-      case ActivityType.restaurant:
-        return Colors.orange;
-      case ActivityType.sightseeing:
-        return Colors.green;
-      case ActivityType.shopping:
-        return Colors.purple;
-      case ActivityType.transport:
-        return Colors.grey;
-      case ActivityType.other:
-        return Colors.teal;
-    }
+  void _showSaveDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Save to My Travels",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text("This will add this premium itinerary to your account for offline access and sharing."),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () async {
+                final success = await context.read<TripViewModel>().savePlan(
+                  DateTime.now(),
+                  DateTime.now().add(Duration(days: itinerary.days.length)),
+                );
+                if (success && context.mounted) {
+                  context.pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Plan saved successfully!")),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+              child: const Text("CONFIRM SAVE"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

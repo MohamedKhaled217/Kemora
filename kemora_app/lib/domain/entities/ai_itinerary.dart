@@ -4,8 +4,10 @@ class ItineraryItem extends Equatable {
   final String name;
   final String description;
   final String timeOfDay;
+  final String? suggestedHours;
   final String? imageUrl;
   final double? rating;
+  final String? price;
   final String? itineraryReview;
   final double? latitude;
   final double? longitude;
@@ -15,8 +17,10 @@ class ItineraryItem extends Equatable {
     required this.name,
     required this.description,
     required this.timeOfDay,
+    this.suggestedHours,
     this.imageUrl,
     this.rating,
+    this.price,
     this.itineraryReview,
     this.latitude,
     this.longitude,
@@ -28,8 +32,10 @@ class ItineraryItem extends Equatable {
         name,
         description,
         timeOfDay,
+        suggestedHours,
         imageUrl,
         rating,
+        price,
         itineraryReview,
         latitude,
         longitude,
@@ -40,14 +46,18 @@ class ItineraryItem extends Equatable {
 class TripDay extends Equatable {
   final int dayNumber;
   final List<ItineraryItem> activities;
+  final String? dailySummary;
+  final String? transportTips;
 
   const TripDay({
     required this.dayNumber,
     required this.activities,
+    this.dailySummary,
+    this.transportTips,
   });
 
   @override
-  List<Object?> get props => [dayNumber, activities];
+  List<Object?> get props => [dayNumber, activities, dailySummary, transportTips];
 }
 
 class AIItinerary extends Equatable {

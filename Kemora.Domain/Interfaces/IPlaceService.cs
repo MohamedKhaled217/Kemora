@@ -31,5 +31,10 @@ namespace Kemora.Domain.Interfaces
         /// Suggests an alternative single activity/place if the user dislikes one in their itinerary.
         /// </summary>
         Task<string> SwapPlaceAsync(string currentPlaceName, string preferences);
+
+        /// <summary>
+        /// Gets detailed information about a specific place from Google Maps.
+        /// </summary>
+        Task<FetchedPlaceDto?> GetPlaceDetailsAsync(string googlePlaceId);
     }
 }

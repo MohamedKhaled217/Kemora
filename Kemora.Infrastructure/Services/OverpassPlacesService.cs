@@ -210,14 +210,18 @@ namespace Kemora.Infrastructure.Services
             var budgetTier = budget ?? "Mid-Range";
             var travelerInfo = preferences ?? "solo traveler";
 
-            // Limit to top 140 places to avoid exceeding Gemini token limits (429 TooManyRequests) but allow variety
+            // Limit to top 25 diverse places to maximize token efficiency and prevent Gemini 429/500 errors
             var topPlaces = places
+                .GroupBy(p => p.Types.FirstOrDefault() ?? "Other")
+                .SelectMany(g => g
+                    .OrderByDescending(p => p.Rating ?? 0)
+                    .ThenBy(p => p.DistanceKm)
+                    .Take(5))
                 .OrderByDescending(p => p.Rating ?? 0)
-                .ThenBy(p => p.DistanceKm)
-                .Take(140)
+                .Take(25)
                 .ToList();
 
-            var placeSummary = BuildPlaceSummary(topPlaces);
+            var placeSummary = BuildCompactPlaceSummary(topPlaces);
 
             var tourismTypesList = tourismTypes ?? [];
             var tourismTypesJson = string.Join(", ", tourismTypesList.Select(t => $"\"{t}\""));
@@ -370,6 +374,12 @@ Respond ONLY with valid, parseable JSON — no markdown, no commentary.
             return doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString() ?? "";
         }
 
+        public Task<FetchedPlaceDto?> GetPlaceDetailsAsync(string googlePlaceId)
+        {
+            // Overpass does not support Place Details by Google ID
+            return Task.FromResult<FetchedPlaceDto?>(null);
+        }
+
         // ---------------------------------------------------------------
         // HELPERS
         // ---------------------------------------------------------------
@@ -423,25 +433,14 @@ Respond ONLY with valid, parseable JSON — no markdown, no commentary.
             return types.Count > 0 ? types : ["Place"];
         }
 
-        private static string BuildPlaceSummary(List<FetchedPlaceDto> places)
+        private static string BuildCompactPlaceSummary(List<FetchedPlaceDto> places)
         {
             var sb = new StringBuilder();
-            int i = 1;
             foreach (var p in places)
             {
-                var types  = string.Join(", ", p.Types);
-                var rating = p.Rating.HasValue ? $"{p.Rating:F1}/5" : "no rating";
-                sb.AppendLine($"{i++}. {p.Name} ({types}) — {rating}");
-                sb.AppendLine($"   Lat: {p.Latitude}, Lon: {p.Longitude}");
-                sb.AppendLine($"   Address : {p.Address}");
-                sb.AppendLine($"   Distance: {p.DistanceKm} km from center");
-                if (!string.IsNullOrEmpty(p.ImageUrl))
-                    sb.AppendLine($"   ImageURL: {p.ImageUrl}");
-                if (!string.IsNullOrEmpty(p.Website))
-                    sb.AppendLine($"   Website : {p.Website}");
-                if (p.OpeningHours?.Count > 0)
-                    sb.AppendLine($"   Hours   : {string.Join(" | ", p.OpeningHours)}");
-                sb.AppendLine();
+                var type = p.Types.FirstOrDefault() ?? "Place";
+                var rating = p.Rating.HasValue ? $"{p.Rating:F1}★" : "?";
+                sb.AppendLine($"- {p.Name} [{type}] {rating} {p.Latitude:F3},{p.Longitude:F3}");
             }
             return sb.ToString();
         }

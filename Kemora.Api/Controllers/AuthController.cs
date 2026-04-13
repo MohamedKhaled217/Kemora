@@ -31,6 +31,7 @@ namespace Kemora.Api.Controllers
         /// </summary>
         /// <param name="model">Registration details including full name, email, and password.</param>
         /// <returns>Authentication tokens and user info.</returns>
+        [AllowAnonymous]
         [HttpPost("register")]
         [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -46,6 +47,7 @@ namespace Kemora.Api.Controllers
         /// </summary>
         /// <param name="model">Login credentials.</param>
         /// <returns>JWT access token and refresh token.</returns>
+        [AllowAnonymous]
         [HttpPost("login")]
         [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -61,6 +63,7 @@ namespace Kemora.Api.Controllers
         /// </summary>
         /// <param name="model">External login details including the provider and ID token.</param>
         /// <returns>JWT access token and refresh token.</returns>
+        [AllowAnonymous]
         [HttpPost("google-login")]
         [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -89,6 +92,7 @@ namespace Kemora.Api.Controllers
         /// <summary>
         /// Confirm a user's email address using the confirmation token sent during registration.
         /// </summary>
+        [AllowAnonymous]
         [HttpPost("confirm-email")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -102,6 +106,7 @@ namespace Kemora.Api.Controllers
         /// <summary>
         /// Confirm email via a direct link (GET request).
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("confirm-email-link")]
         public async Task<IActionResult> ConfirmEmailLink([FromQuery] string userId, [FromQuery] string token)
         {
@@ -145,12 +150,27 @@ namespace Kemora.Api.Controllers
         /// <summary>
         /// Request a password reset token. An email will be sent if the account exists.
         /// </summary>
+        [AllowAnonymous]
         [HttpPost("forgot-password")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto model)
         {
             var (succeeded, error) = await _authService.ForgotPasswordAsync(model.Email);
             return Ok(new { message = "If your email exists, a reset link has been sent." });
+        }
+
+        /// <summary>
+        /// Redirects the user to the Flutter app's password reset screen.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("reset-password-redirect")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public IActionResult ResetPasswordRedirect([FromQuery] string email, [FromQuery] string token)
+        {
+            var encodedEmail = Uri.EscapeDataString(email);
+            var encodedToken = Uri.EscapeDataString(token);
+            // Kemora deep link scheme intercepted by the Flutter app
+            return Redirect($"kemora://reset-password?email={encodedEmail}&token={encodedToken}");
         }
 
         /// <summary>

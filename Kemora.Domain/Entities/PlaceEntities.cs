@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -11,6 +11,13 @@ namespace Kemora.Domain.Entities
         public string Name { get; set; }
         public string Region { get; set; }
         public string? ImageURL { get; set; }
+        
+        [Column(TypeName = "decimal(10, 8)")]
+        public decimal Latitude { get; set; }
+
+        [Column(TypeName = "decimal(11, 8)")]
+        public decimal Longitude { get; set; }
+
         public ICollection<Place> Places { get; set; }
     }
 
@@ -65,6 +72,9 @@ namespace Kemora.Domain.Entities
 
         public int? PlaceTypeID { get; set; }
         public PlaceType? PlaceType { get; set; }
+
+        public DateTime? LastEnrichedAt { get; set; }
+        public string? Source { get; set; } // "seed", "overpass", "manual"
 
         // Relationships
         public ICollection<Photo> Photos { get; set; }

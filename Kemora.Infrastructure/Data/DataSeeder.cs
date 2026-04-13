@@ -22,43 +22,49 @@ namespace Kemora.Infrastructure.Data
             await SeedPlaceTypesAsync(context);
             
             await SeedUsersAsync(userManager, context);
-            await SeedTop20PlacesAsync(context);
+            await SeedBadgesAsync(context);
+            await SeedHighQualityPlacesAsync(context);
             await SeedSocialPostsAsync(context);
+            await AwardInitialBadgesAsync(context);
         }
 
         private static async Task SeedGovernoratesAsync(ApplicationDbContext context)
         {
-            if (await context.Governorates.AnyAsync()) return;
+            System.Console.WriteLine("SEED: Seeding Governorates...");
+            if (await context.Governorates.AnyAsync()) {
+                System.Console.WriteLine("SEED: Governorates already exist. Skipping.");
+                return;
+            }
 
             var governorates = new List<Governorate>
             {
-                new() { Name = "Cairo", Region = "Greater Cairo", ImageURL = "https://images.unsplash.com/photo-1572252009286-268acec5ca0a" },
-                new() { Name = "Giza", Region = "Greater Cairo", ImageURL = "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368" },
-                new() { Name = "Alexandria", Region = "Northern Coast", ImageURL = "https://images.unsplash.com/photo-1621251817478-f685c7bb74e6" },
-                new() { Name = "Luxor", Region = "Upper Egypt", ImageURL = "https://images.unsplash.com/photo-1594916301297-a7eb443a9926" },
-                new() { Name = "Aswan", Region = "Upper Egypt", ImageURL = "https://images.unsplash.com/photo-1610486828590-edc9372e617d" },
-                new() { Name = "Red Sea", Region = "Eastern Coast", ImageURL = "https://images.unsplash.com/photo-1500249821865-c7e4ff69b2d6" },
-                new() { Name = "South Sinai", Region = "Sinai Peninsula", ImageURL = "https://images.unsplash.com/photo-1622350720516-ec7fdf41a100" },
-                new() { Name = "Matrouh", Region = "Northern Coast" },
-                new() { Name = "Fayoum", Region = "Central Egypt" },
-                new() { Name = "Suez", Region = "Canal Zone" },
-                new() { Name = "Ismailia", Region = "Canal Zone" },
-                new() { Name = "Port Said", Region = "Canal Zone" },
-                new() { Name = "Dakahlia", Region = "Nile Delta" },
-                new() { Name = "Sharqia", Region = "Nile Delta" },
-                new() { Name = "Qalyubia", Region = "Greater Cairo" },
-                new() { Name = "Kafr El Sheikh", Region = "Nile Delta" },
-                new() { Name = "Gharbia", Region = "Nile Delta" },
-                new() { Name = "Monufia", Region = "Nile Delta" },
-                new() { Name = "Beheira", Region = "Nile Delta" },
-                new() { Name = "Beni Suef", Region = "Central Egypt" },
-                new() { Name = "Minya", Region = "Central Egypt" },
-                new() { Name = "Asyut", Region = "Upper Egypt" },
-                new() { Name = "Sohag", Region = "Upper Egypt" },
-                new() { Name = "Qena", Region = "Upper Egypt" },
-                new() { Name = "New Valley", Region = "Western Desert", ImageURL = "https://images.unsplash.com/photo-1549488344-c7151e289f64" },
-                new() { Name = "Damietta", Region = "Nile Delta" },
-                new() { Name = "North Sinai", Region = "Sinai Peninsula" }
+                new() { Name = "Cairo", Region = "Greater Cairo", Latitude = 30.0444m, Longitude = 31.2357m, ImageURL = "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?auto=format&fit=crop&w=1200" },
+                new() { Name = "Giza", Region = "Greater Cairo", Latitude = 29.9792m, Longitude = 31.1342m, ImageURL = "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?auto=format&fit=crop&w=1200" },
+                new() { Name = "Alexandria", Region = "Northern Coast", Latitude = 31.2001m, Longitude = 29.9187m, ImageURL = "https://images.unsplash.com/photo-1621251817478-f685c7bb74e6?auto=format&fit=crop&w=1200" },
+                new() { Name = "Luxor", Region = "Upper Egypt", Latitude = 25.6872m, Longitude = 32.6396m, ImageURL = "https://images.unsplash.com/photo-1594916301297-a7eb443a9926?auto=format&fit=crop&w=1200" },
+                new() { Name = "Aswan", Region = "Upper Egypt", Latitude = 24.0889m, Longitude = 32.8998m, ImageURL = "https://images.unsplash.com/photo-1610486828590-edc9372e617d?auto=format&fit=crop&w=1200" },
+                new() { Name = "Red Sea", Region = "Eastern Coast", Latitude = 27.2579m, Longitude = 33.8116m, ImageURL = "https://images.unsplash.com/photo-1584025000781-9f935fcc2dbe?auto=format&fit=crop&w=1200" },
+                new() { Name = "South Sinai", Region = "Sinai Peninsula", Latitude = 27.9158m, Longitude = 34.3299m, ImageURL = "https://images.unsplash.com/photo-1622350720516-ec7fdf41a100?auto=format&fit=crop&w=1200" },
+                new() { Name = "Matrouh", Region = "Northern Coast", Latitude = 31.3543m, Longitude = 27.2373m, ImageURL = "https://images.unsplash.com/photo-1616790809516-92895f11181f?auto=format&fit=crop&w=1200" },
+                new() { Name = "Fayoum", Region = "Central Egypt", Latitude = 29.3090m, Longitude = 30.8418m, ImageURL = "https://images.unsplash.com/photo-1601058268499-e52658b8ebf8?auto=format&fit=crop&w=1200" },
+                new() { Name = "Dakahlia", Region = "Nile Delta", Latitude = 31.0413m, Longitude = 31.3785m },
+                new() { Name = "Sharqia", Region = "Nile Delta", Latitude = 30.6234m, Longitude = 31.6375m },
+                new() { Name = "Qalyubia", Region = "Greater Cairo", Latitude = 30.3308m, Longitude = 31.2241m },
+                new() { Name = "Kafr El Sheikh", Region = "Nile Delta", Latitude = 31.2137m, Longitude = 30.6872m },
+                new() { Name = "Gharbia", Region = "Nile Delta", Latitude = 30.7303m, Longitude = 30.9996m },
+                new() { Name = "Monufia", Region = "Nile Delta", Latitude = 30.4682m, Longitude = 30.9859m },
+                new() { Name = "Beheira", Region = "Nile Delta", Latitude = 31.0364m, Longitude = 30.4699m },
+                new() { Name = "Beni Suef", Region = "Central Egypt", Latitude = 29.0661m, Longitude = 31.0994m },
+                new() { Name = "Minya", Region = "Upper Egypt", Latitude = 28.1096m, Longitude = 30.7516m },
+                new() { Name = "Asyut", Region = "Upper Egypt", Latitude = 27.1802m, Longitude = 31.1837m },
+                new() { Name = "Sohag", Region = "Upper Egypt", Latitude = 26.5591m, Longitude = 31.6957m },
+                new() { Name = "Qena", Region = "Upper Egypt", Latitude = 26.1551m, Longitude = 32.7160m },
+                new() { Name = "Damietta", Region = "Nile Delta", Latitude = 31.4175m, Longitude = 31.8144m },
+                new() { Name = "Port Said", Region = "Canal Zone", Latitude = 31.2653m, Longitude = 32.3020m },
+                new() { Name = "Suez", Region = "Canal Zone", Latitude = 29.9668m, Longitude = 32.5498m },
+                new() { Name = "Ismailia", Region = "Canal Zone", Latitude = 30.5965m, Longitude = 32.2715m },
+                new() { Name = "North Sinai", Region = "Sinai Peninsula", Latitude = 30.5903m, Longitude = 33.7052m },
+                new() { Name = "New Valley", Region = "Western Desert", Latitude = 25.4390m, Longitude = 30.5586m },
             };
 
             context.Governorates.AddRange(governorates);
@@ -67,7 +73,11 @@ namespace Kemora.Infrastructure.Data
 
         private static async Task SeedCategoriesAsync(ApplicationDbContext context)
         {
-            if (await context.Categories.AnyAsync()) return;
+            System.Console.WriteLine("SEED: Seeding Categories...");
+            if (await context.Categories.AnyAsync()) {
+                System.Console.WriteLine("SEED: Categories already exist. Skipping.");
+                return;
+            }
             var categories = new List<Category>
             {
                 new() { Name = "Historical" },
@@ -85,7 +95,11 @@ namespace Kemora.Infrastructure.Data
 
         private static async Task SeedPlaceTypesAsync(ApplicationDbContext context)
         {
-            if (await context.PlaceTypes.AnyAsync()) return;
+            System.Console.WriteLine("SEED: Seeding Place Types...");
+            if (await context.PlaceTypes.AnyAsync()) {
+                System.Console.WriteLine("SEED: Place Types already exist. Skipping.");
+                return;
+            }
             var historical = await context.Categories.FirstAsync(c => c.Name == "Historical");
             var beach = await context.Categories.FirstAsync(c => c.Name == "Beach");
             var cultural = await context.Categories.FirstAsync(c => c.Name == "Cultural");
@@ -134,89 +148,34 @@ namespace Kemora.Infrastructure.Data
             }
         }
 
-        private static async Task SeedTop20PlacesAsync(ApplicationDbContext context)
+        private static async Task SeedHighQualityPlacesAsync(ApplicationDbContext context)
         {
-            if (await context.Places.CountAsync() > 25) return;
+            var count = await context.Places.CountAsync();
+            if (count > 20) return;
 
             var gizaGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Giza");
             var luxorGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Luxor");
             var cairoGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Cairo");
             var alexGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Alexandria");
             var aswanGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Aswan");
-            var sSinaiGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "South Sinai");
-            var newValleyGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "New Valley");
-            var matrouhGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Matrouh");
-            var qenaGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Qena");
-            var fayoumGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Fayoum");
-            var redSeaGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Red Sea");
-            var asyutGov = await context.Governorates.FirstOrDefaultAsync(g => g.Name == "Asyut");
 
             var pyramidType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "pyramid");
             var templeType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "temple");
             var museumType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "museum");
             var citadelType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "citadel");
-            var marketType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "market");
-            var parkType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "national_park");
-            var safariType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "safari");
-            var beachType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "beach_resort");
-            var divingType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "diving_spot");
-            var restaurantType = await context.PlaceTypes.FirstOrDefaultAsync(pt => pt.GoogleType == "restaurant");
 
-            if (gizaGov == null || pyramidType == null || templeType == null)
-                return; // Early return if base expected data isn't seeded
+            if (gizaGov == null || pyramidType == null || templeType == null) return;
 
             var places = new List<Place>
             {
-                // Historical
-                new Place { Name = "Giza Pyramids", Description = "The Great Pyramid of Giza is the oldest and largest of the three pyramids.", Address = "Al Haram, Giza", Latitude = 29.9792m, Longitude = 31.1342m, Rating = 4.8m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368", GovernorateID = gizaGov.GovernorateID, PlaceTypeID = pyramidType.TypeID },
-                new Place { Name = "Karnak Temple", Description = "A vast mix of decayed temples, chapels, pylons near Luxor.", Address = "Karnak, Luxor", Latitude = 25.7188m, Longitude = 32.6573m, Rating = 4.9m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1594916301297-a7eb443a9926", GovernorateID = luxorGov.GovernorateID, PlaceTypeID = templeType.TypeID },
-                new Place { Name = "Valley of the Kings", Description = "Valley where tombs were excavated for pharaohs.", Address = "Luxor", Latitude = 25.7402m, Longitude = 32.6014m, Rating = 4.7m, PriceLevel = 3, MainImageURL = "https://images.unsplash.com/photo-1601058268499-e52658b8ebf8", GovernorateID = luxorGov.GovernorateID, PlaceTypeID = templeType.TypeID },
-                new Place { Name = "Qaitbay Citadel", Description = "A 15th-century defensive fortress on the Mediterranean sea coast.", Address = "Alexandria", Latitude = 31.2140m, Longitude = 29.8856m, Rating = 4.6m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1621251817478-f685c7bb74e6", GovernorateID = alexGov.GovernorateID, PlaceTypeID = citadelType.TypeID },
-                new Place { Name = "Egyptian Museum", Description = "Home to an extensive collection of ancient Egyptian antiquities.", Address = "Tahrir Square, Cairo", Latitude = 30.0478m, Longitude = 31.2336m, Rating = 4.5m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1572252009286-268acec5ca0a", GovernorateID = cairoGov.GovernorateID, PlaceTypeID = museumType.TypeID },
-                new Place { Name = "Philae Temple", Description = "Beautiful island temple complex in Aswan.", Address = "Aswan", Latitude = 24.0255m, Longitude = 32.8844m, Rating = 4.8m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1610486828590-edc9372e617d", GovernorateID = aswanGov.GovernorateID, PlaceTypeID = templeType.TypeID },
-                new Place { Name = "Abu Simbel Temples", Description = "Two massive rock-cut temples in Upper Egypt.", Address = "Aswan", Latitude = 22.3370m, Longitude = 31.6258m, Rating = 4.9m, PriceLevel = 3, MainImageURL = "https://images.unsplash.com/photo-1522079031269-8db2de34b071", GovernorateID = aswanGov.GovernorateID, PlaceTypeID = templeType.TypeID },
-                new Place { Name = "Edfu Temple", Description = "Extremely well-preserved Ptolemaic temple.", Address = "Edfu", Latitude = 24.9782m, Longitude = 32.8735m, Rating = 4.8m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1594916301297-a7eb443a9926", GovernorateID = aswanGov.GovernorateID, PlaceTypeID = templeType.TypeID },
-                new Place { Name = "Dendera Temple Complex", Description = "One of the best-preserved temple complexes in Egypt.", Address = "Qena", Latitude = 26.1394m, Longitude = 32.6705m, Rating = 4.9m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1601058268499-e52658b8ebf8", GovernorateID = qenaGov.GovernorateID, PlaceTypeID = templeType.TypeID },
-                new Place { Name = "Saqqara Step Pyramid", Description = "The oldest complete stone building complex known in history.", Address = "Badrashin, Giza", Latitude = 29.8712m, Longitude = 31.2166m, Rating = 4.8m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368", GovernorateID = gizaGov.GovernorateID, PlaceTypeID = pyramidType.TypeID },
-
-                // Cultural & Religious
-                new Place { Name = "Khan el-Khalili", Description = "A famous historical bazaar and souq in Cairo.", Address = "Cairo", Latitude = 30.0478m, Longitude = 31.2622m, Rating = 4.7m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1554559388-7e3e91124aba", GovernorateID = cairoGov.GovernorateID, PlaceTypeID = marketType.TypeID },
-                new Place { Name = "Baron Empain Palace", Description = "A distinctive Hindu-style palace in Heliopolis.", Address = "Cairo", Latitude = 30.0867m, Longitude = 31.3303m, Rating = 4.6m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1629814407936-3980df24be70", GovernorateID = cairoGov.GovernorateID, PlaceTypeID = museumType.TypeID },
-                new Place { Name = "Al-Azhar Mosque", Description = "One of the oldest and most influential Islamic landmarks.", Address = "Cairo", Latitude = 30.0457m, Longitude = 31.2599m, Rating = 4.8m, PriceLevel = 0, MainImageURL = "https://images.unsplash.com/photo-1590059039021-9b376722d7a2", GovernorateID = cairoGov.GovernorateID, PlaceTypeID = religiousType_OrDefault(context, "mosque") },
-                new Place { Name = "Saladin Citadel", Description = "Medieval Islamic fortification in Cairo.", Address = "Cairo", Latitude = 30.0298m, Longitude = 31.2611m, Rating = 4.7m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1596560410041-945781a798f5", GovernorateID = cairoGov.GovernorateID, PlaceTypeID = citadelType.TypeID },
-                new Place { Name = "Bibliotheca Alexandrina", Description = "Major library and cultural center on the Mediterranean.", Address = "Alexandria", Latitude = 31.2089m, Longitude = 29.9092m, Rating = 4.9m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1621251817478-f685c7bb74e6", GovernorateID = alexGov.GovernorateID, PlaceTypeID = museumType.TypeID },
-                new Place { Name = "St. Catherine's Monastery", Description = "Ancient monastery at the foot of Mount Sinai.", Address = "Sinai", Latitude = 28.5559m, Longitude = 33.9760m, Rating = 4.8m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1622350720516-ec7fdf41a100", GovernorateID = sSinaiGov.GovernorateID, PlaceTypeID = religiousType_OrDefault(context, "church") },
-                new Place { Name = "Temple of the Oracle", Description = "Famous oracle temple visited by Alexander the Great.", Address = "Siwa Oasis", Latitude = 29.2032m, Longitude = 25.5484m, Rating = 4.7m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1549488344-c7151e289f64", GovernorateID = matrouhGov.GovernorateID, PlaceTypeID = templeType.TypeID },
-                new Place { Name = "Al Muharraq Monastery", Description = "Historic Christian monastery where the Holy Family stayed.", Address = "Asyut", Latitude = 27.3218m, Longitude = 30.8202m, Rating = 4.9m, PriceLevel = 0, MainImageURL = "https://images.unsplash.com/photo-1620216654275-23c34a217c06", GovernorateID = asyutGov.GovernorateID, PlaceTypeID = religiousType_OrDefault(context, "church") },
-
-                // Nature, Beach & Adventure
-                new Place { Name = "Ras Mohammed National Park", Description = "Prominent national park renowned for diving.", Address = "Sharm El Sheikh", Latitude = 27.7329m, Longitude = 34.2494m, Rating = 4.8m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1622350720516-ec7fdf41a100", GovernorateID = sSinaiGov.GovernorateID, PlaceTypeID = parkType.TypeID },
-                new Place { Name = "White Desert", Description = "A desert known for striking chalk rock formations.", Address = "Farafra", Latitude = 27.0543m, Longitude = 27.9718m, Rating = 4.9m, PriceLevel = 3, MainImageURL = "https://images.unsplash.com/photo-1549488344-c7151e289f64", GovernorateID = newValleyGov.GovernorateID, PlaceTypeID = safariType.TypeID },
-                new Place { Name = "Wadi el-Hitan", Description = "UNESCO World Heritage site for whale fossils.", Address = "Fayoum", Latitude = 29.2713m, Longitude = 30.0441m, Rating = 4.7m, PriceLevel = 3, MainImageURL = "https://images.unsplash.com/photo-1533142262417-ad51619058bb", GovernorateID = fayoumGov.GovernorateID, PlaceTypeID = parkType.TypeID },
-                new Place { Name = "Montazah Palace Gardens", Description = "Royal palace and lush gardens overlooking the Mediterranean.", Address = "Alexandria", Latitude = 31.2882m, Longitude = 30.0163m, Rating = 4.6m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1621251817478-f685c7bb74e6", GovernorateID = alexGov.GovernorateID, PlaceTypeID = parkType.TypeID },
-                new Place { Name = "Blue Hole", Description = "World famous and deadly submarine sinkhole for advanced divers.", Address = "Dahab", Latitude = 28.5721m, Longitude = 34.5369m, Rating = 4.7m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1500249821865-c7e4ff69b2d6", GovernorateID = sSinaiGov.GovernorateID, PlaceTypeID = divingType.TypeID },
-                new Place { Name = "Giftun Islands", Description = "Stunning white sand beaches and coral reefs.", Address = "Hurghada", Latitude = 27.2343m, Longitude = 33.9458m, Rating = 4.8m, PriceLevel = 3, MainImageURL = "https://images.unsplash.com/photo-1500249821865-c7e4ff69b2d6", GovernorateID = redSeaGov.GovernorateID, PlaceTypeID = beachType.TypeID },
-                new Place { Name = "Siwa Oasis", Description = "An isolated urban oasis surrounded by salt lakes and palms.", Address = "Siwa, Matrouh", Latitude = 29.2032m, Longitude = 25.5195m, Rating = 4.9m, PriceLevel = 2, MainImageURL = "https://images.unsplash.com/photo-1549488344-c7151e289f64", GovernorateID = matrouhGov.GovernorateID, PlaceTypeID = safariType.TypeID },
-                new Place { Name = "Wadi Rayan Waterfalls", Description = "Egypt's only waterfalls, connecting two artificial lakes.", Address = "Fayoum", Latitude = 29.1350m, Longitude = 30.3479m, Rating = 4.5m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1533142262417-ad51619058bb", GovernorateID = fayoumGov.GovernorateID, PlaceTypeID = parkType.TypeID },
-                
-                // Food & Dining / Markets
-                new Place { Name = "Sequoia", Description = "Exceptional dining with panoramic views of the Nile River.", Address = "Zamalek, Cairo", Latitude = 30.0631m, Longitude = 31.2210m, Rating = 4.6m, PriceLevel = 4, MainImageURL = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4", GovernorateID = cairoGov.GovernorateID, PlaceTypeID = restaurantType.TypeID },
-                new Place { Name = "Fish Market Alexandria", Description = "Premium Mediterranean seafood restaurant with ocean views.", Address = "Alexandria", Latitude = 31.2018m, Longitude = 29.9158m, Rating = 4.8m, PriceLevel = 3, MainImageURL = "https://images.unsplash.com/photo-1559339352-11d035aa65de", GovernorateID = alexGov.GovernorateID, PlaceTypeID = restaurantType.TypeID },
-                new Place { Name = "Aswan Spice Market", Description = "Vibrant souq filled with colorful spices and Nubian artifacts.", Address = "Aswan", Latitude = 24.0889m, Longitude = 32.8998m, Rating = 4.7m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1554559388-7e3e91124aba", GovernorateID = aswanGov.GovernorateID, PlaceTypeID = marketType.TypeID },
-                new Place { Name = "El Fishawy Cafe", Description = "One of Cairo's oldest cafes, famous for mint tea and shisha.", Address = "Khan el-Khalili, Cairo", Latitude = 30.0478m, Longitude = 31.2622m, Rating = 4.6m, PriceLevel = 1, MainImageURL = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4", GovernorateID = cairoGov.GovernorateID, PlaceTypeID = restaurantType.TypeID }
+                new Place { Name = "The Great Pyramid of Giza", GooglePlaceID = "ChIJ9V-2_2m9WBQRz7fWf5n_Asw", Description = "The only surviving wonder of the ancient world.", Address = "Al Haram, Giza", Latitude = 29.9792m, Longitude = 31.1342m, Rating = 4.8m, MainImageURL = "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?auto=format&fit=crop&w=1200", GovernorateID = gizaGov.GovernorateID, PlaceTypeID = pyramidType.TypeID, Source = "seed", LastEnrichedAt = DateTime.UtcNow },
+                new Place { Name = "Egyptian Museum", GooglePlaceID = "ChIJX_Q8TID9WBQRy68vG-m9XoY", Description = "Home to the world's largest collection of pharaonic antiquities.", Address = "Tahrir Square, Cairo", Latitude = 30.0478m, Longitude = 31.2336m, Rating = 4.6m, MainImageURL = "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?auto=format&fit=crop&w=1200", GovernorateID = cairoGov.GovernorateID, PlaceTypeID = museumType.TypeID, Source = "seed", LastEnrichedAt = DateTime.UtcNow },
+                new Place { Name = "Karnak Temple Complex", GooglePlaceID = "ChIJ4c7A_f_HWBQR92nL_q-hX4Q", Description = "The largest religious complex ever built by man.", Address = "Luxor", Latitude = 25.7188m, Longitude = 32.6573m, Rating = 4.9m, MainImageURL = "https://images.unsplash.com/photo-1594916301297-a7eb443a9926?auto=format&fit=crop&w=1200", GovernorateID = luxorGov.GovernorateID, PlaceTypeID = templeType.TypeID, Source = "seed", LastEnrichedAt = DateTime.UtcNow },
+                new Place { Name = "Philae Temple", GooglePlaceID = "ChIJV-vB4u6_WBQR--6s_q-hI80", Description = "Beautiful temple complex dedicated to the goddess Isis.", Address = "Aswan", Latitude = 24.0255m, Longitude = 32.8844m, Rating = 4.8m, MainImageURL = "https://images.unsplash.com/photo-1610486828590-edc9372e617d?auto=format&fit=crop&w=1200", GovernorateID = aswanGov.GovernorateID, PlaceTypeID = templeType.TypeID, Source = "seed", LastEnrichedAt = DateTime.UtcNow },
+                new Place { Name = "Citadel of Qaitbay", GooglePlaceID = "ChIJs8_O-b1q-hQR_Wj7o8F-h-o", Description = "15th-century defensive fortress on the Mediterranean sea coast.", Address = "Alexandria", Latitude = 31.2140m, Longitude = 29.8856m, Rating = 4.6m, MainImageURL = "https://images.unsplash.com/photo-1621251817478-f685c7bb74e6?auto=format&fit=crop&w=1200", GovernorateID = alexGov.GovernorateID, PlaceTypeID = citadelType.TypeID, Source = "seed", LastEnrichedAt = DateTime.UtcNow }
             };
 
-            context.Places.AddRange(places);
-            await context.SaveChangesAsync();
-
-            var pyramids = await context.Places.FirstOrDefaultAsync(p => p.Name == "Giza Pyramids");
-            if (pyramids == null) return;
-            var reviews = new List<Review>
-            {
-                new Review { AuthorName = "Ahmed M.", Rating = 5, Text = "Breathtaking experience. A must visit!", PlaceID = pyramids.PlaceID },
-                new Review { AuthorName = "Sarah S.", Rating = 4, Text = "Very crowded, but definitely worth it.", PlaceID = pyramids.PlaceID }
-            };
-            context.Reviews.AddRange(reviews);
+            await context.Places.AddRangeAsync(places);
             await context.SaveChangesAsync();
         }
 
@@ -257,6 +216,45 @@ namespace Kemora.Infrastructure.Data
             };
 
             context.Comments.Add(comment1);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedBadgesAsync(ApplicationDbContext context)
+        {
+            if (await context.Badges.AnyAsync()) return;
+
+            var badges = new List<Badge>
+            {
+                new() { Name = "First Steps", Description = "Complete your profile and join the community!", Criteria = "Profile Completion", PointsReward = 50, IconUrl = "👣" },
+                new() { Name = "Explorer", Description = "Visit and review 5 different places.", Criteria = "5 Place Reviews", PointsReward = 100, IconUrl = "🧭" },
+                new() { Name = "Adventurer", Description = "Visit 10 different places across Egypt.", Criteria = "10 Places Visited", PointsReward = 200, IconUrl = "⛰️" },
+                new() { Name = "Pharaoh's Path", Description = "Visit 3 different historical sites.", Criteria = "3 Historical Sites", PointsReward = 150, IconUrl = "🏛️" },
+                new() { Name = "Beach Lover", Description = "Visit 3 different beach destinations.", Criteria = "3 Beach Visits", PointsReward = 150, IconUrl = "🏖️" },
+                new() { Name = "Social Butterfly", Description = "Create 5 social posts for your followers.", Criteria = "5 Social Posts", PointsReward = 100, IconUrl = "🦋" },
+                new() { Name = "Navigator", Description = "Plan 3 successful trips using the AI Planner.", Criteria = "3 AI Trips", PointsReward = 150, IconUrl = "🗺️" },
+                new() { Name = "Foodie", Description = "Visit and review 5 different restaurants.", Criteria = "5 Restaurant Reviews", PointsReward = 100, IconUrl = "🍽️" },
+                new() { Name = "Egypt Master", Description = "Visit a place in all 27 governorates.", Criteria = "27 Governorates", PointsReward = 500, IconUrl = "👑" },
+                new() { Name = "Globe Trotter", Description = "Complete 10 total trip itineraries.", Criteria = "10 Itineraries", PointsReward = 300, IconUrl = "🌍" }
+            };
+
+            context.Badges.AddRange(badges);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task AwardInitialBadgesAsync(ApplicationDbContext context)
+        {
+            var firstStepsBadge = await context.Badges.FirstOrDefaultAsync(b => b.Name == "First Steps");
+            if (firstStepsBadge == null) return;
+
+            var users = await context.Users.ToListAsync();
+            foreach (var user in users)
+            {
+                var alreadyHas = await context.UserBadges.AnyAsync(ub => ub.UserID == user.Id && ub.BadgeID == firstStepsBadge.BadgeID);
+                if (!alreadyHas)
+                {
+                    context.UserBadges.Add(new UserBadge { UserID = user.Id, BadgeID = firstStepsBadge.BadgeID, EarnedAt = DateTime.UtcNow });
+                }
+            }
             await context.SaveChangesAsync();
         }
         private static int religiousType_OrDefault(ApplicationDbContext context, string type)
