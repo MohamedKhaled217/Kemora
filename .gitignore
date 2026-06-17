@@ -7,7 +7,6 @@ appsettings.Development.json
 appsettings.*.json
 .env
 .env.*
-.agent
 *.txt
 secrets.json
 
@@ -35,10 +34,8 @@ secrets.json
 .svn/
 
 # IntelliJ related
-*.iml
 *.ipr
 *.iws
-.idea/
 
 # The .vscode folder contains bare-minimum workspace settings.
 # Keep launch.json and settings.json if you want to share debug / standard configurations

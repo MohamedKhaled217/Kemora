@@ -140,17 +140,22 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
   }
 
   @override
+  // [KEMORA-MIGRATION] Backend GET /api/v1/trips returns PagedResult<TripListDto> { items: [...], totalCount, page, pageSize }
+  // Fixed to unwrap the 'items' array. Falls back to direct list if server returns flat array.
   Future<List<TripModel>> getUserTrips() async {
     try {
       final response = await dio.get('/api/v1/trips');
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => TripModel.fromJson(json)).toList();
+        final data = response.data;
+        final List<dynamic> items = (data is Map && data.containsKey('items'))
+            ? data['items'] as List<dynamic>
+            : data as List<dynamic>;
+        return items.map((json) => TripModel.fromJson(json)).toList();
       } else {
         throw const ServerFailure('Failed to fetch trips');
       }
     } on DioException catch (e) {
-      throw ServerFailure(e.response?.data['message'] ?? 'Server Error');
+      throw ServerFailure(e.response?.data?['message'] ?? 'Server Error');
     }
   }
 }

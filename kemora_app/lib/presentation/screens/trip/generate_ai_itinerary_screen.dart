@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../domain/entities/trip_plan_request.dart';
 import '../../viewmodels/trip_view_model.dart';
 import '../../viewmodels/auth_view_model.dart';
-import 'ai_itinerary_result_screen.dart';
+import 'trip_detail_screen.dart';
 
 class GenerateAIItineraryScreen extends StatefulWidget {
   final String? preSelectedPlaceId;
@@ -81,8 +81,8 @@ class _GenerateAIItineraryScreenState extends State<GenerateAIItineraryScreen> {
     if (tripVM.state == TripState.loaded && tripVM.currentPlan != null) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => AIItineraryResultScreen(
-            itinerary: tripVM.currentPlan!,
+          builder: (context) => TripDetailScreen(
+            aiItinerary: tripVM.currentPlan!,
             request: request,
           ),
         ),
@@ -112,9 +112,9 @@ class _GenerateAIItineraryScreenState extends State<GenerateAIItineraryScreen> {
                 margin: const EdgeInsets.only(bottom: 24),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFC5A358).withOpacity(0.1),
+                  color: const Color(0xFFC5A358).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFC5A358).withOpacity(0.3)),
+                  border: Border.all(color: const Color(0xFFC5A358).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
