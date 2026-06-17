@@ -4,7 +4,8 @@
 - **State Management**: Provider (`ChangeNotifierProvider`) with `GetIt` for Dependency Injection.
 - **HTTP Client**: Dio (with a `TokenStorage` interceptor for JWT authorization).
 - **Navigation Pattern**: Standard Flutter `Navigator` (`Navigator.push`, `Navigator.pop`, etc.). Custom route transitions (`FadePageRoute`, `SlidePageRoute`) are occasionally used. No external routing packages.
-- **Repository**: [https://github.com/0Zyad1/KemoraZingy](https://github.com/0Zyad1/KemoraZingy)
+- **Repository**: [https://github.com/0Zyad1/Kemora/tree/FINAL](https://github.com/0Zyad1/Kemora/tree/FINAL)
+
 
 
 ## Screen Map
